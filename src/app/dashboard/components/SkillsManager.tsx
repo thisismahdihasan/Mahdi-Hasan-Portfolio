@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import Toast from './Toast'
 import ConfirmDialog from './ConfirmDialog'
+import { revalidateHomepage } from '@/lib/revalidate'
 
 interface Category {
   id: string
@@ -154,6 +155,7 @@ export default function SkillsManager() {
     ])
     if (r1.error || r2.error) showToast('Move failed.', 'error')
     invalidateAll()
+    revalidateHomepage()
   }
 
   const moveSkill = async (id: string, categoryId: string, dir: 'up' | 'down') => {
@@ -178,6 +180,7 @@ export default function SkillsManager() {
     ])
     if (r1.error || r2.error) showToast('Move failed.', 'error')
     invalidateAll()
+    revalidateHomepage()
   }
 
   // ── Category CRUD ──────────────────────────────────────────────────────────
@@ -195,7 +198,7 @@ export default function SkillsManager() {
       .eq('id', editingCat)
     setSaving(false)
     if (error) showToast(error.message, 'error')
-    else { showToast('Category updated.'); setEditingCat(null); invalidateAll() }
+    else { showToast('Category updated.'); setEditingCat(null); invalidateAll(); revalidateHomepage() }
   }
 
   const createCategory = async () => {
@@ -207,7 +210,7 @@ export default function SkillsManager() {
       .insert({ title: newCatTitle.trim(), sort_order: maxOrder + 1 })
     setSaving(false)
     if (error) showToast(error.message, 'error')
-    else { showToast('Category created.'); setNewCatTitle(''); invalidateAll() }
+    else { showToast('Category created.'); setNewCatTitle(''); invalidateAll(); revalidateHomepage() }
   }
 
   const deleteCategory = async (id: string) => {
@@ -216,7 +219,7 @@ export default function SkillsManager() {
     setDeleting(false)
     setConfirmDeleteCat(null)
     if (error) showToast(error.message, 'error')
-    else { showToast('Category and all its skills deleted.'); invalidateAll() }
+    else { showToast('Category and all its skills deleted.'); invalidateAll(); revalidateHomepage() }
   }
 
   // ── Skill CRUD ─────────────────────────────────────────────────────────────
@@ -234,7 +237,7 @@ export default function SkillsManager() {
       .eq('id', editingSkill)
     setSaving(false)
     if (error) showToast(error.message, 'error')
-    else { showToast('Skill updated.'); setEditingSkill(null); invalidateAll() }
+    else { showToast('Skill updated.'); setEditingSkill(null); invalidateAll(); revalidateHomepage() }
   }
 
   const createSkill = async (categoryId: string) => {
@@ -247,7 +250,7 @@ export default function SkillsManager() {
       .insert({ name: newSkillName.trim(), category_id: categoryId, sort_order: maxOrder + 1 })
     setSaving(false)
     if (error) showToast(error.message, 'error')
-    else { showToast('Skill added.'); setNewSkillName(''); setAddingSkillFor(null); invalidateAll() }
+    else { showToast('Skill added.'); setNewSkillName(''); setAddingSkillFor(null); invalidateAll(); revalidateHomepage() }
   }
 
   const deleteSkill = async (id: string) => {
@@ -256,7 +259,7 @@ export default function SkillsManager() {
     setDeleting(false)
     setConfirmDeleteSkill(null)
     if (error) showToast(error.message, 'error')
-    else { showToast('Skill deleted.'); invalidateAll() }
+    else { showToast('Skill deleted.'); invalidateAll(); revalidateHomepage() }
   }
 
   // ── Collapse helpers ───────────────────────────────────────────────────────

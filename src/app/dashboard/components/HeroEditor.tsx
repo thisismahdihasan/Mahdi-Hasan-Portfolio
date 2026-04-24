@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import Toast from './Toast'
 import type { HeroContent } from '@/types/hero'
+import { revalidateHomepage } from '@/lib/revalidate'
 
 const MAX_PDF_BYTES  = 5 * 1024 * 1024 // 5 MB
 const MAX_IMG_BYTES  = 8 * 1024 * 1024 // 8 MB
@@ -126,7 +127,15 @@ export default function HeroEditor() {
     // Invalidate TanStack Query cache so re-open shows fresh data
     await queryClient.invalidateQueries({ queryKey: HERO_KEY })
     setDirty(false)
-    setToast({ message: 'Hero content saved.', type: 'success' })
+
+    // Trigger ISR revalidation — non-blocking, warn only on failure
+    const revalidated = await revalidateHomepage()
+    setToast({
+      message: revalidated
+        ? 'Hero content saved. Public site updated.'
+        : 'Hero content saved. Public site will refresh within 5 minutes.',
+      type: 'success',
+    })
   }
 
   const handleReset = () => {
@@ -651,9 +660,9 @@ export default function HeroEditor() {
                   schedule
                 </span>
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-[#D4AF37]/80">Cache notice</p>
+                  <p className="text-xs font-semibold text-[#D4AF37]/80">Live updates</p>
                   <p className="text-[11px] text-[#D4AF37]/50 leading-relaxed">
-                    The public site caches pages for up to 5 minutes. After saving, changes will appear on the live site after the next cache refresh.
+                    Saving triggers instant revalidation of the public site. Changes appear immediately after the next page load.
                   </p>
                 </div>
               </div>

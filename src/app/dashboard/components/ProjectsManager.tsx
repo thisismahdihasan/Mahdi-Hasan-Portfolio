@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import ProjectForm, { type ProjectRow, storagePathFromUrl } from './ProjectForm'
 import Toast from './Toast'
 import ConfirmDialog from './ConfirmDialog'
+import { revalidateHomepage } from '@/lib/revalidate'
 
 type ToastState = { message: string; type: 'success' | 'error' } | null
 
@@ -47,6 +48,7 @@ export default function ProjectsManager() {
     setCreating(false)
     showToast(msg)
     invalidate()
+    revalidateHomepage()
   }
 
   const handleDelete = async (id: string) => {
@@ -62,7 +64,7 @@ export default function ProjectsManager() {
     setDeleting(false)
     setConfirmDelete(null)
     if (error) showToast(error.message, 'error')
-    else { showToast('Project deleted.'); invalidate() }
+    else { showToast('Project deleted.'); invalidate(); revalidateHomepage() }
   }
 
   const toggleStatus = async (project: ProjectRow) => {
@@ -70,7 +72,7 @@ export default function ProjectsManager() {
     const { error } = await supabase
       .from('projects').update({ status: next }).eq('id', project.id!)
     if (error) showToast(error.message, 'error')
-    else { showToast(`Marked as ${next}.`); invalidate() }
+    else { showToast(`Marked as ${next}.`); invalidate(); revalidateHomepage() }
   }
 
   const moveProject = async (id: string, dir: 'up' | 'down') => {
@@ -92,6 +94,7 @@ export default function ProjectsManager() {
     ])
     if (r1.error || r2.error) showToast('Move failed.', 'error')
     invalidate()
+    revalidateHomepage()
   }
 
   // ── Form view ──────────────────────────────────────────────────────────────
