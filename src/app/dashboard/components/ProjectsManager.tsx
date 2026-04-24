@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import ProjectForm, { type ProjectRow, storagePathFromUrl } from './ProjectForm'
 import Toast from './Toast'
@@ -8,9 +9,30 @@ import ConfirmDialog from './ConfirmDialog'
 
 type ToastState = { message: string; type: 'success' | 'error' } | null
 
+const QUERY_KEY = ['dashboard-projects'] as const
+
+async function fetchProjectsFromDB(): Promise<ProjectRow[]> {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id, title, slug, category, short_description, full_description, image_url, live_url, github_url, tech_stack, status, sort_order, created_at')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true })
+  if (error) throw new Error(error.message)
+  return (data ?? []) as ProjectRow[]
+}
+
 export default function ProjectsManager() {
-  const [projects, setProjects] = useState<ProjectRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const qc = useQueryClient()
+  const invalidate = () => qc.invalidateQueries({ queryKey: QUERY_KEY })
+
+  const { data: projects = [], isLoading, isError, error: queryError } = useQuery({
+    queryKey: QUERY_KEY,
+    queryFn: fetchProjectsFromDB,
+    staleTime: 2 * 60 * 1000,   // 2 minutes
+    gcTime:   10 * 60 * 1000,   // 10 minutes
+    placeholderData: (prev) => prev, // keep previous data while refetching
+  })
+
   const [editing, setEditing] = useState<ProjectRow | null>(null)
   const [creating, setCreating] = useState(false)
   const [toast, setToast] = useState<ToastState>(null)
@@ -20,26 +42,11 @@ export default function ProjectsManager() {
   const showToast = (message: string, type: 'success' | 'error' = 'success') =>
     setToast({ message, type })
 
-  const fetchProjects = useCallback(async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('projects')
-      .select('id, title, slug, category, short_description, full_description, image_url, live_url, github_url, tech_stack, status, sort_order, created_at')
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true })
-
-    if (error) showToast(error.message, 'error')
-    else setProjects((data ?? []) as ProjectRow[])
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { fetchProjects() }, [fetchProjects])
-
   const handleSaved = (msg: string) => {
     setEditing(null)
     setCreating(false)
     showToast(msg)
-    fetchProjects()
+    invalidate()
   }
 
   const handleDelete = async (id: string) => {
@@ -55,7 +62,7 @@ export default function ProjectsManager() {
     setDeleting(false)
     setConfirmDelete(null)
     if (error) showToast(error.message, 'error')
-    else { showToast('Project deleted.'); fetchProjects() }
+    else { showToast('Project deleted.'); invalidate() }
   }
 
   const toggleStatus = async (project: ProjectRow) => {
@@ -63,11 +70,10 @@ export default function ProjectsManager() {
     const { error } = await supabase
       .from('projects').update({ status: next }).eq('id', project.id!)
     if (error) showToast(error.message, 'error')
-    else { showToast(`Marked as ${next}.`); fetchProjects() }
+    else { showToast(`Marked as ${next}.`); invalidate() }
   }
 
   const moveProject = async (id: string, dir: 'up' | 'down') => {
-    // Sort by sort_order asc, created_at asc for stable index resolution
     const sorted = [...projects].sort((a, b) =>
       a.sort_order !== b.sort_order
         ? a.sort_order - b.sort_order
@@ -85,7 +91,7 @@ export default function ProjectsManager() {
       supabase.from('projects').update({ sort_order: a.sort_order }).eq('id', b.id!),
     ])
     if (r1.error || r2.error) showToast('Move failed.', 'error')
-    await fetchProjects()
+    invalidate()
   }
 
   // ── Form view ──────────────────────────────────────────────────────────────
@@ -125,10 +131,12 @@ export default function ProjectsManager() {
         </button>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center py-16">
           <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
         </div>
+      ) : isError ? (
+        <p className="text-sm text-red-400/70 text-center py-16">{(queryError as Error)?.message ?? 'Failed to load projects.'}</p>
       ) : projects.length === 0 ? (
         <p className="text-sm text-white/30 text-center py-16">No projects yet.</p>
       ) : (

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import Toast from './Toast'
 import ConfirmDialog from './ConfirmDialog'
@@ -9,6 +10,7 @@ interface Category {
   id: string
   title: string
   sort_order: number
+  created_at?: string
 }
 
 interface Skill {
@@ -16,9 +18,33 @@ interface Skill {
   name: string
   category_id: string
   sort_order: number
+  created_at?: string
 }
 
 type ToastState = { message: string; type: 'success' | 'error' } | null
+
+const CAT_KEY   = ['dashboard-skill-categories'] as const
+const SKILL_KEY = ['dashboard-skills'] as const
+
+async function fetchCategories(): Promise<Category[]> {
+  const { data, error } = await supabase
+    .from('skill_categories')
+    .select('id, title, sort_order, created_at')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true })
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
+async function fetchSkills(): Promise<Skill[]> {
+  const { data, error } = await supabase
+    .from('skills')
+    .select('id, name, category_id, sort_order, created_at')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true })
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
 
 // ── Arrow button ─────────────────────────────────────────────────────────────
 function MoveBtn({ dir, disabled, onClick }: { dir: 'up' | 'down'; disabled: boolean; onClick: () => void }) {
@@ -35,14 +61,56 @@ function MoveBtn({ dir, disabled, onClick }: { dir: 'up' | 'down'; disabled: boo
 }
 
 export default function SkillsManager() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [skills, setSkills] = useState<Skill[]>([])
-  const [loading, setLoading] = useState(true)
+  const qc = useQueryClient()
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: CAT_KEY })
+    qc.invalidateQueries({ queryKey: SKILL_KEY })
+  }
+
+  const {
+    data: categories = [],
+    isLoading: catsLoading,
+    isError: catsError,
+  } = useQuery({
+    queryKey: CAT_KEY,
+    queryFn: fetchCategories,
+    staleTime: 5 * 60 * 1000,
+    gcTime:   10 * 60 * 1000,
+    placeholderData: (prev) => prev,
+  })
+
+  const {
+    data: skills = [],
+    isLoading: skillsLoading,
+    isError: skillsError,
+  } = useQuery({
+    queryKey: SKILL_KEY,
+    queryFn: fetchSkills,
+    staleTime: 5 * 60 * 1000,
+    gcTime:   10 * 60 * 1000,
+    placeholderData: (prev) => prev,
+  })
+
+  const loading = catsLoading || skillsLoading
+
   const [toast, setToast] = useState<ToastState>(null)
   const [saving, setSaving] = useState(false)
 
   // Collapse state — Set of collapsed category IDs
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+
+  // Initialise collapse on first successful load: first category open, rest collapsed
+  useEffect(() => {
+    if (categories.length === 0) return
+    setCollapsed(prev => {
+      if (prev.size > 0) return prev   // preserve user's open/closed state on refetch
+      const sorted = [...categories].sort((a, b) =>
+        a.sort_order !== b.sort_order ? a.sort_order - b.sort_order
+          : (a.created_at ?? '') < (b.created_at ?? '') ? -1 : 1
+      )
+      return new Set(sorted.slice(1).map(c => c.id))
+    })
+  }, [categories])
 
   // Category edit
   const [editingCat, setEditingCat] = useState<string | null>(null)
@@ -67,41 +135,11 @@ export default function SkillsManager() {
   const showToast = (message: string, type: 'success' | 'error' = 'success') =>
     setToast({ message, type })
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true)
-    const [{ data: cats, error: catErr }, { data: sks, error: skErr }] = await Promise.all([
-      supabase.from('skill_categories').select('id, title, sort_order, created_at').order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
-      supabase.from('skills').select('id, name, category_id, sort_order, created_at').order('sort_order', { ascending: true }).order('created_at', { ascending: true }),
-    ])
-    if (catErr) showToast(catErr.message, 'error')
-    else {
-      const fetched = cats ?? []
-      setCategories(fetched)
-      // First category expanded, rest collapsed — only on initial load
-      setCollapsed(prev => {
-        // If we already have state (re-fetch after edit), preserve it
-        if (prev.size > 0 || fetched.length === 0) return prev
-        const sorted = [...fetched].sort((a, b) =>
-          a.sort_order !== b.sort_order ? a.sort_order - b.sort_order
-            : (a as any).created_at < (b as any).created_at ? -1 : 1
-        )
-        return new Set(sorted.slice(1).map(c => c.id))
-      })
-    }
-    if (skErr) showToast(skErr.message, 'error')
-    else setSkills(sks ?? [])
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { fetchAll() }, [fetchAll])
-
-  // ── Move helpers ───────────────────────────────────────────────────────────
   const moveCat = async (id: string, dir: 'up' | 'down') => {
-    // Always sort by sort_order asc, created_at asc to get stable index order
     const sorted = [...categories].sort((a, b) =>
       a.sort_order !== b.sort_order
         ? a.sort_order - b.sort_order
-        : (a as any).created_at < (b as any).created_at ? -1 : 1
+        : (a.created_at ?? '') < (b.created_at ?? '') ? -1 : 1
     )
     const idx = sorted.findIndex(c => c.id === id)
     const swapIdx = dir === 'up' ? idx - 1 : idx + 1
@@ -115,17 +153,16 @@ export default function SkillsManager() {
       supabase.from('skill_categories').update({ sort_order: a.sort_order }).eq('id', b.id),
     ])
     if (r1.error || r2.error) showToast('Move failed.', 'error')
-    await fetchAll()
+    invalidateAll()
   }
 
   const moveSkill = async (id: string, categoryId: string, dir: 'up' | 'down') => {
-    // Sort skills within this category by sort_order asc, created_at asc
     const catSkills = skills
       .filter(s => s.category_id === categoryId)
       .sort((a, b) =>
         a.sort_order !== b.sort_order
           ? a.sort_order - b.sort_order
-          : (a as any).created_at < (b as any).created_at ? -1 : 1
+          : (a.created_at ?? '') < (b.created_at ?? '') ? -1 : 1
       )
 
     const idx = catSkills.findIndex(s => s.id === id)
@@ -140,7 +177,7 @@ export default function SkillsManager() {
       supabase.from('skills').update({ sort_order: a.sort_order }).eq('id', b.id),
     ])
     if (r1.error || r2.error) showToast('Move failed.', 'error')
-    await fetchAll()
+    invalidateAll()
   }
 
   // ── Category CRUD ──────────────────────────────────────────────────────────
@@ -158,7 +195,7 @@ export default function SkillsManager() {
       .eq('id', editingCat)
     setSaving(false)
     if (error) showToast(error.message, 'error')
-    else { showToast('Category updated.'); setEditingCat(null); fetchAll() }
+    else { showToast('Category updated.'); setEditingCat(null); invalidateAll() }
   }
 
   const createCategory = async () => {
@@ -170,7 +207,7 @@ export default function SkillsManager() {
       .insert({ title: newCatTitle.trim(), sort_order: maxOrder + 1 })
     setSaving(false)
     if (error) showToast(error.message, 'error')
-    else { showToast('Category created.'); setNewCatTitle(''); fetchAll() }
+    else { showToast('Category created.'); setNewCatTitle(''); invalidateAll() }
   }
 
   const deleteCategory = async (id: string) => {
@@ -179,7 +216,7 @@ export default function SkillsManager() {
     setDeleting(false)
     setConfirmDeleteCat(null)
     if (error) showToast(error.message, 'error')
-    else { showToast('Category and all its skills deleted.'); fetchAll() }
+    else { showToast('Category and all its skills deleted.'); invalidateAll() }
   }
 
   // ── Skill CRUD ─────────────────────────────────────────────────────────────
@@ -197,7 +234,7 @@ export default function SkillsManager() {
       .eq('id', editingSkill)
     setSaving(false)
     if (error) showToast(error.message, 'error')
-    else { showToast('Skill updated.'); setEditingSkill(null); fetchAll() }
+    else { showToast('Skill updated.'); setEditingSkill(null); invalidateAll() }
   }
 
   const createSkill = async (categoryId: string) => {
@@ -210,7 +247,7 @@ export default function SkillsManager() {
       .insert({ name: newSkillName.trim(), category_id: categoryId, sort_order: maxOrder + 1 })
     setSaving(false)
     if (error) showToast(error.message, 'error')
-    else { showToast('Skill added.'); setNewSkillName(''); setAddingSkillFor(null); fetchAll() }
+    else { showToast('Skill added.'); setNewSkillName(''); setAddingSkillFor(null); invalidateAll() }
   }
 
   const deleteSkill = async (id: string) => {
@@ -219,7 +256,7 @@ export default function SkillsManager() {
     setDeleting(false)
     setConfirmDeleteSkill(null)
     if (error) showToast(error.message, 'error')
-    else { showToast('Skill deleted.'); fetchAll() }
+    else { showToast('Skill deleted.'); invalidateAll() }
   }
 
   // ── Collapse helpers ───────────────────────────────────────────────────────
@@ -247,6 +284,10 @@ export default function SkillsManager() {
     )
   }
 
+  if (catsError || skillsError) {
+    return <p className="text-sm text-red-400/70 text-center py-16">Failed to load skills data.</p>
+  }
+
   return (
     <div className="pb-6 sm:pb-0">
       <h2 className="text-base lg:text-lg font-medium text-white mb-6">Skills</h2>
@@ -272,7 +313,7 @@ export default function SkillsManager() {
           .sort((a, b) =>
             a.sort_order !== b.sort_order
               ? a.sort_order - b.sort_order
-              : (a as any).created_at < (b as any).created_at ? -1 : 1
+              : (a.created_at ?? '') < (b.created_at ?? '') ? -1 : 1
           )
           .map((cat, catIdx, sortedCats) => {
           const catSkills = skills
@@ -280,7 +321,7 @@ export default function SkillsManager() {
             .sort((a, b) =>
               a.sort_order !== b.sort_order
                 ? a.sort_order - b.sort_order
-                : (a as any).created_at < (b as any).created_at ? -1 : 1
+                : (a.created_at ?? '') < (b.created_at ?? '') ? -1 : 1
             )
 
           const isCollapsed = collapsed.has(cat.id)
