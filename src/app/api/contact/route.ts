@@ -56,7 +56,17 @@ async function isRateLimited(
   return total >= 3
 }
 
-// ── Resend notification — fire-and-forget after successful DB insert ──────────
+// ── HTML escape helper — applied to all visitor-provided fields ──────────────
+function esc(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+// ── Admin lead notification ───────────────────────────────────────────────────
 async function sendLeadNotification(params: {
   name: string
   email: string
@@ -115,20 +125,20 @@ async function sendLeadNotification(params: {
     <div class="body">
       <div class="field">
         <div class="label">From</div>
-        <div class="value">${params.name}</div>
+        <div class="value">${esc(params.name)}</div>
       </div>
       <div class="field">
         <div class="label">Email</div>
-        <div class="value"><a href="mailto:${params.email}">${params.email}</a></div>
+        <div class="value"><a href="mailto:${esc(params.email)}">${esc(params.email)}</a></div>
       </div>
       ${params.phone ? `
       <div class="field">
         <div class="label">Phone</div>
-        <div class="value">${params.phone}</div>
+        <div class="value">${esc(params.phone)}</div>
       </div>` : ''}
       <div class="field">
         <div class="label">Message</div>
-        <div class="message-box"><p>${params.message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p></div>
+        <div class="message-box"><p>${esc(params.message)}</p></div>
       </div>
       <hr class="divider" />
       <div class="meta">
@@ -154,6 +164,101 @@ async function sendLeadNotification(params: {
     console.error('[/api/contact] Resend notification failed:', error)
   } else {
     console.log('[/api/contact] Resend notification sent to:', to)
+  }
+}
+
+// ── Visitor thank-you email ───────────────────────────────────────────────────
+async function sendThankYouEmail(params: {
+  name: string
+  email: string
+  phone: string | null
+  message: string
+}): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  const from   = process.env.RESEND_FROM
+
+  if (!apiKey || !from) {
+    console.warn('[/api/contact] Resend env vars missing — skipping thank-you email')
+    return
+  }
+
+  const resend = new Resend(apiKey)
+
+  // Truncate message preview to 300 chars for the summary block
+  const preview = params.message.length > 300
+    ? esc(params.message.slice(0, 300)) + '…'
+    : esc(params.message)
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9f9f9; color: #1a1a1a; margin: 0; padding: 0; }
+    .wrapper { max-width: 540px; margin: 32px auto; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; }
+    .header { background: #111111; border-bottom: 3px solid #D4AF37; padding: 28px 32px; }
+    .header h1 { margin: 0; font-size: 20px; font-weight: 700; color: #D4AF37; letter-spacing: 0.01em; }
+    .header p { margin: 6px 0 0; font-size: 12px; color: #888; letter-spacing: 0.08em; text-transform: uppercase; }
+    .body { padding: 32px 32px 24px; }
+    .body p { margin: 0 0 16px; font-size: 15px; color: #333; line-height: 1.7; }
+    .body p:last-child { margin-bottom: 0; }
+    .quote { background: #f5f5f5; border-left: 3px solid #D4AF37; border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 20px 0; }
+    .quote p { margin: 0; font-size: 13px; color: #555; line-height: 1.7; font-style: italic; white-space: pre-wrap; }
+    .divider { border: none; border-top: 1px solid #e5e5e5; margin: 24px 0; }
+    .footer { padding: 16px 32px 28px; }
+    .footer p { margin: 0 0 4px; font-size: 14px; color: #333; line-height: 1.6; }
+    .footer .sig-name { font-weight: 700; color: #111; font-size: 15px; }
+    .footer .sig-sub { font-size: 12px; color: #999; margin-top: 8px; }
+    .footer a { color: #D4AF37; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1>Mahdi Hasan</h1>
+      <p>Full-Stack Developer · Portfolio</p>
+    </div>
+    <div class="body">
+      <p>Hi ${esc(params.name)},</p>
+      <p>Thanks for reaching out — I've received your message and will review it shortly. I typically reply within 24 hours.</p>
+      <p>Here's a summary of what you sent:</p>
+      <div class="quote">
+        <p>${preview}</p>
+      </div>
+      <p>If you have anything to add or need to reach me directly, just reply to this email.</p>
+    </div>
+    <hr class="divider" />
+    <div class="footer">
+      <p class="sig-name">Mahdi Hasan</p>
+      <p>Full-Stack Developer</p>
+      <p><a href="mailto:contact@mahdihasan.pro.bd">contact@mahdihasan.pro.bd</a></p>
+      <p class="sig-sub">This is an automated confirmation. Your message has been saved.</p>
+    </div>
+  </div>
+</body>
+</html>`
+
+  const text =
+    `Hi ${params.name},\n\n` +
+    `Thanks for reaching out — I've received your message and will review it shortly. I typically reply within 24 hours.\n\n` +
+    `Your message:\n"${params.message.slice(0, 300)}${params.message.length > 300 ? '…' : ''}"\n\n` +
+    `If you need to reach me directly, reply to this email.\n\n` +
+    `— Mahdi Hasan\nFull-Stack Developer\ncontact@mahdihasan.pro.bd`
+
+  const { error } = await resend.emails.send({
+    from: `Mahdi Hasan <${from}>`,
+    to: params.email,
+    replyTo: from,
+    subject: 'Thanks for reaching out — Mahdi Hasan',
+    html,
+    text,
+  })
+
+  if (error) {
+    console.error('[/api/contact] Thank-you email failed:', error)
+  } else {
+    console.log('[/api/contact] Thank-you email sent to:', params.email)
   }
 }
 
@@ -290,9 +395,8 @@ export async function POST(req: NextRequest) {
 
     console.log('[/api/contact] DB insert ok for:', trimmedEmail)
 
-    // ── Resend notification — fire-and-forget, never blocks the 200 ──────
-    // DB is the source of truth. A Resend failure is logged but does not
-    // cause the visitor to see an error or retry (which would create duplicates).
+    // ── Fire-and-forget emails — never block the 200 ─────────────────────
+    // DB is the source of truth. Email failures are logged only.
     sendLeadNotification({
       name: trimmedName,
       email: trimmedEmail,
@@ -302,6 +406,15 @@ export async function POST(req: NextRequest) {
       submittedAt,
     }).catch(err => {
       console.error('[/api/contact] sendLeadNotification threw unexpectedly:', err)
+    })
+
+    sendThankYouEmail({
+      name: trimmedName,
+      email: trimmedEmail,
+      phone: trimmedPhone || null,
+      message: trimmedMessage,
+    }).catch(err => {
+      console.error('[/api/contact] sendThankYouEmail threw unexpectedly:', err)
     })
 
     return NextResponse.json({ success: true })
