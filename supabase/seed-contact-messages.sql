@@ -1,5 +1,5 @@
 -- ============================================================
--- Contact Messages Table — Phase A Migration
+-- Contact Messages Table — Phase A + B Migration
 -- Safe to run multiple times (idempotent)
 -- ============================================================
 
@@ -16,17 +16,33 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   read_at      timestamptz,
   archived_at  timestamptz,
   source_page  text        DEFAULT '/',
-  user_agent   text
+  user_agent   text,
+  ip_hash      text
 );
 
--- 2. Composite index for efficient filtered queries
+-- 2. Add ip_hash column if table already existed without it (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'contact_messages' AND column_name = 'ip_hash'
+  ) THEN
+    ALTER TABLE contact_messages ADD COLUMN ip_hash text;
+  END IF;
+END $$;
+
+-- 3. Composite index for status + time queries
 CREATE INDEX IF NOT EXISTS idx_contact_messages_status_submitted
   ON contact_messages (status, submitted_at DESC);
 
--- 3. Enable Row Level Security
+-- 4. Index for rate-limit queries (ip_hash + submitted_at)
+CREATE INDEX IF NOT EXISTS idx_contact_messages_ip_hash_submitted
+  ON contact_messages (ip_hash, submitted_at DESC);
+
+-- 5. Enable Row Level Security
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 
--- 4. RLS: anonymous users can INSERT only
+-- 6. RLS: anonymous users can INSERT only
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -42,7 +58,7 @@ BEGIN
   END IF;
 END $$;
 
--- 5. RLS: authenticated users can SELECT
+-- 7. RLS: authenticated users can SELECT
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -58,7 +74,7 @@ BEGIN
   END IF;
 END $$;
 
--- 6. RLS: authenticated users can UPDATE
+-- 8. RLS: authenticated users can UPDATE
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -75,7 +91,7 @@ BEGIN
   END IF;
 END $$;
 
--- 7. RLS: authenticated users can DELETE
+-- 9. RLS: authenticated users can DELETE
 DO $$
 BEGIN
   IF NOT EXISTS (

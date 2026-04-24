@@ -12,6 +12,7 @@ export interface ContactMessage {
   archivedAt: string | null
   sourcePage: string | null
   userAgent: string | null
+  ipHash: string | null
 }
 
 /** Maps a raw Supabase snake_case row to the camelCase ContactMessage interface */
@@ -28,5 +29,6 @@ export function toContactMessage(row: Record<string, unknown>): ContactMessage {
     archivedAt: (row.archived_at as string | null) ?? null,
     sourcePage: (row.source_page as string | null) ?? null,
     userAgent: (row.user_agent as string | null) ?? null,
+    ipHash: (row.ip_hash as string | null) ?? null,
   }
 }

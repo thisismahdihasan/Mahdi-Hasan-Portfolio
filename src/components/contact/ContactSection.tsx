@@ -158,34 +158,57 @@ const ContactSection = () => {
     setIsSubmitting(true)
     setSubmitStatus('idle')
 
-    // ── Fire-and-forget DB persistence — never blocks EmailJS or UI ──────
-    // Errors are logged to console but do not affect the user-facing toast.
-    fetch('/api/contact', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone || undefined,
-        message: formData.message,
-        honeypot: '',
-        source_page: typeof window !== 'undefined' ? window.location.pathname : '/',
-      }),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          console.error('[ContactSection] /api/contact failed:', res.status, body)
-        } else {
-          console.log('[ContactSection] /api/contact saved successfully')
-        }
-      })
-      .catch((err) => {
-        console.error('[ContactSection] /api/contact network error:', err)
-      })
-    
+    // ── Step 1: call /api/contact and await the result ────────────────────
+    // This must complete before EmailJS so a 429 can block the email send.
+    let apiRateLimited = false
     try {
-      // Send email using EmailJS
+      const apiRes = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || undefined,
+          message: formData.message,
+          honeypot: '',
+          source_page: typeof window !== 'undefined' ? window.location.pathname : '/',
+        }),
+      })
+      if (apiRes.status === 429) {
+        apiRateLimited = true
+      } else if (!apiRes.ok) {
+        console.error('[ContactSection] /api/contact failed:', apiRes.status)
+      } else {
+        console.log('[ContactSection] /api/contact saved successfully')
+      }
+    } catch (err) {
+      // Network error — log but don't block EmailJS (server may be temporarily down)
+      console.error('[ContactSection] /api/contact network error:', err)
+    }
+
+    // ── Step 2: if rate-limited, stop here — do not call EmailJS ─────────
+    if (apiRateLimited) {
+      if (isMounted) {
+        toast.error('Too many messages. Please try again later.', {
+          duration: 6000,
+          style: {
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            color: '#ffffff',
+          },
+        })
+        setSubmitStatus('error')
+        setIsSubmitting(false)
+        setTimeout(() => {
+          if (!isMounted) return
+          setSubmitStatus('idle')
+        }, 5000)
+      }
+      return
+    }
+
+    // ── Step 3: proceed with EmailJS ──────────────────────────────────────
+    try {
       const result = await emailjs.send(
         EMAILJS_CONFIG.SERVICE_ID,
         EMAILJS_CONFIG.TEMPLATE_ID,
@@ -194,7 +217,6 @@ const ContactSection = () => {
           [EMAIL_TEMPLATE_VARS.EMAIL]: formData.email,
           [EMAIL_TEMPLATE_VARS.PHONE]: formData.phone || 'Not provided',
           [EMAIL_TEMPLATE_VARS.MESSAGE]: formData.message,
-          // Additional template variables for better email formatting
           [EMAIL_TEMPLATE_VARS.FROM_NAME]: formData.name,
           [EMAIL_TEMPLATE_VARS.FROM_EMAIL]: formData.email,
           [EMAIL_TEMPLATE_VARS.TO_NAME]: 'Mahdi Hasan',
@@ -203,11 +225,9 @@ const ContactSection = () => {
       )
 
       console.log('Email sent successfully:', result)
-      
-      // Only update state if component is still mounted
+
       if (!isMounted) return
-      
-      // Show success notification
+
       toast.success('Message sent successfully! I\'ll get back to you soon.', {
         duration: 5000,
         style: {
@@ -216,27 +236,24 @@ const ContactSection = () => {
           color: '#ffffff',
         },
       })
-      
+
       setSubmitStatus('success')
-      
-      // Clear form after success
+
       setTimeout(() => {
         if (!isMounted) return
         setFormData({ name: '', email: '', phone: '', message: '' })
         setSubmitStatus('idle')
       }, 3000)
-      
+
     } catch (error) {
       console.error('Email send failed:', error)
-      
-      // Only update state if component is still mounted
+
       if (!isMounted) return
-      
-      // Show error notification with more details
-      const errorMessage = error instanceof Error 
-        ? `Failed to send message: ${error.message}` 
+
+      const errorMessage = error instanceof Error
+        ? `Failed to send message: ${error.message}`
         : 'Failed to send message. Please try again or contact me directly.'
-      
+
       toast.error(errorMessage, {
         duration: 6000,
         style: {
@@ -245,10 +262,9 @@ const ContactSection = () => {
           color: '#ffffff',
         },
       })
-      
+
       setSubmitStatus('error')
-      
-      // Reset error state after 5 seconds
+
       setTimeout(() => {
         if (!isMounted) return
         setSubmitStatus('idle')
