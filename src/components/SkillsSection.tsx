@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Variants } from 'framer-motion'
 import { EASE_OUT, EASE_OUT_QUART } from '@/lib/animations'
@@ -101,8 +101,9 @@ const SkillsSection = ({ initialSkillCategories }: { initialSkillCategories?: Se
   const [selectedIcon, setSelectedIcon] = useState<OrbitalIcon | null>(null)
   const [highlightedCard, setHighlightedCard] = useState<string | null>(null)
   const [activeCardIndex, setActiveCardIndex] = useState(0)
-  const [touchStart, setTouchStart] = useState(0)
-  const [touchEnd, setTouchEnd] = useState(0)
+  // Use refs for touch tracking — avoids re-renders during swipe gesture
+  const touchStartRef = useRef(0)
+  const touchEndRef = useRef(0)
 
   // ✅ Memoize animation variants for section - mobile-optimized
   const sectionVariants: Variants = useMemo(() => ({
@@ -152,57 +153,45 @@ const SkillsSection = ({ initialSkillCategories }: { initialSkillCategories?: Se
   }), [])
 
   // Map orb icon hover to related card
-  const handleOrbIconHover = (iconId: string | null) => {
+  const handleOrbIconHover = useCallback((iconId: string | null) => {
     if (!iconId) {
       setHighlightedCard(null)
       return
     }
-
-    const relatedCard = skillCategories.find(cat => 
+    const relatedCard = skillCategories.find(cat =>
       cat.relatedOrbIcons.includes(iconId)
     )
-    
-    if (relatedCard) {
-      setHighlightedCard(relatedCard.title)
-    }
-  }
+    if (relatedCard) setHighlightedCard(relatedCard.title)
+  }, [skillCategories])
 
   // Navigate to next card
-  const nextCard = () => {
+  const nextCard = useCallback(() => {
     setActiveCardIndex((prev) => (prev + 1) % skillCategories.length)
-  }
+  }, [skillCategories.length])
 
   // Navigate to previous card
-  const prevCard = () => {
+  const prevCard = useCallback(() => {
     setActiveCardIndex((prev) => (prev - 1 + skillCategories.length) % skillCategories.length)
-  }
+  }, [skillCategories.length])
 
-  // Handle touch events for swipe
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX)
-  }
+  // Touch handlers — use refs so move events don't trigger re-renders
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartRef.current = e.targetTouches[0].clientX
+    touchEndRef.current = 0
+  }, [])
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX)
-  }
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    touchEndRef.current = e.targetTouches[0].clientX
+  }, [])
 
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return
-    
-    const distance = touchStart - touchEnd
-    const isLeftSwipe = distance > 50
-    const isRightSwipe = distance < -50
-
-    if (isLeftSwipe) {
-      nextCard()
-    }
-    if (isRightSwipe) {
-      prevCard()
-    }
-
-    setTouchStart(0)
-    setTouchEnd(0)
-  }
+  const handleTouchEnd = useCallback(() => {
+    if (!touchStartRef.current || !touchEndRef.current) return
+    const distance = touchStartRef.current - touchEndRef.current
+    if (distance > 50) nextCard()
+    else if (distance < -50) prevCard()
+    touchStartRef.current = 0
+    touchEndRef.current = 0
+  }, [nextCard, prevCard])
 
   return (
     <motion.section 
@@ -401,8 +390,8 @@ const SkillsSection = ({ initialSkillCategories }: { initialSkillCategories?: Se
   )
 }
 
-// Tech Orb Component - UNCHANGED
-const TechOrb = ({ 
+// Tech Orb Component — memoized so parent state changes don't re-render it
+const TechOrb = memo(function TechOrb({ 
   icons, 
   onIconClick,
   onIconHover,
@@ -412,66 +401,44 @@ const TechOrb = ({
   onIconClick: (icon: OrbitalIcon) => void
   onIconHover?: (iconId: string | null) => void
   isMobile: boolean
-}) => {
+}) {
   const [hoveredIcon, setHoveredIcon] = useState<string | null>(null)
-  const prefersReducedMotion = useMediaPreferences().prefersReducedMotion
+  const { prefersReducedMotion } = useMediaPreferences()
 
-  const handleIconHover = (iconId: string | null) => {
+  const handleIconHover = useCallback((iconId: string | null) => {
     setHoveredIcon(iconId)
-    if (onIconHover) {
-      onIconHover(iconId)
-    }
-  }
+    onIconHover?.(iconId)
+  }, [onIconHover])
 
-  // Responsive orbit sizing with safe insets - mobile first (desktop restored)
-  const getOrbitConfig = () => {
-    if (typeof window !== 'undefined') {
-      const width = window.innerWidth
-      if (width <= 320) {
-        // Mobile 320px: larger feature-level sizing
-        const containerSize = 280  // 280px diameter
-        const iconSize = 38
-        const safeInset = 10
-        const radius = (containerSize / 2) - (iconSize / 2) - safeInset
-        return { containerSize, iconSize, radius }
-      }
-      if (width < 640) {
-        // Mobile 375px+: scaled up appropriately
-        const containerSize = 310  // 310px diameter
-        const iconSize = 40
-        const safeInset = 10
-        const radius = (containerSize / 2) - (iconSize / 2) - safeInset
-        return { containerSize, iconSize, radius }
-      }
-      if (width < 768) {
-        // Small screens: medium sizing
-        const containerSize = 320  // 320px diameter
-        const iconSize = 44
-        const safeInset = 10
-        const radius = (containerSize / 2) - (iconSize / 2) - safeInset
-        return { containerSize, iconSize, radius }
-      }
-      // Desktop: RESTORED ORIGINAL SIZING (340px diameter = 170px radius)
-      const containerSize = 340  // 340px diameter (ORIGINAL)
-      const iconSize = 56       // 56px icons (ORIGINAL)
-      const safeInset = 0        // No inset for desktop (ORIGINAL behavior)
-      const radius = 170         // 170px radius (ORIGINAL hardcoded value)
-      return { containerSize, iconSize, radius }
+  // Compute orbit config once per breakpoint — stable function reference
+  const computeOrbitConfig = useCallback(() => {
+    if (typeof window === 'undefined') return { containerSize: 340, iconSize: 56, radius: 170 }
+    const width = window.innerWidth
+    if (width <= 320) {
+      const containerSize = 280; const iconSize = 38; const safeInset = 10
+      return { containerSize, iconSize, radius: (containerSize / 2) - (iconSize / 2) - safeInset }
     }
-    // SSR fallback - desktop values
+    if (width < 640) {
+      const containerSize = 310; const iconSize = 40; const safeInset = 10
+      return { containerSize, iconSize, radius: (containerSize / 2) - (iconSize / 2) - safeInset }
+    }
+    if (width < 768) {
+      const containerSize = 320; const iconSize = 44; const safeInset = 10
+      return { containerSize, iconSize, radius: (containerSize / 2) - (iconSize / 2) - safeInset }
+    }
     return { containerSize: 340, iconSize: 56, radius: 170 }
-  }
+  }, [])
 
-  const [orbitConfig, setOrbitConfig] = useState(getOrbitConfig())
+  const [orbitConfig, setOrbitConfig] = useState(computeOrbitConfig)
 
   useEffect(() => {
-    const handleResize = () => {
-      setOrbitConfig(getOrbitConfig())
-    }
-
+    const handleResize = () => setOrbitConfig(computeOrbitConfig())
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  }, [computeOrbitConfig])
+
+  // On mobile: slow down orbit rotation to reduce GPU load
+  const orbitDuration = isMobile ? 40 : 24
 
   return (
     <div className="w-full flex justify-center overflow-visible p-2 max-w-full" style={{ touchAction: 'pan-y' }}>
@@ -533,7 +500,7 @@ const TechOrb = ({
           transform: 'translate(-50%, -50%) rotate(0deg)'
         }}
         transition={{
-          duration: 24,
+          duration: orbitDuration,
           repeat: Infinity,
           ease: "linear"
         }}
@@ -556,9 +523,9 @@ const TechOrb = ({
                 willChange: 'transform'
               } as React.CSSProperties}
             >
-              {/* Floating animation - keep on all devices */}
+              {/* Floating animation — desktop only; mobile skips to reduce GPU load */}
               <motion.div
-                animate={!prefersReducedMotion && !isHovered ? {
+                animate={!prefersReducedMotion && !isHovered && !isMobile ? {
                   y: [-4, 4, -4]
                 } : {}}
                 transition={{
@@ -637,10 +604,23 @@ const TechOrb = ({
     </div>
     </div>
   )
+})
+
+// Skill list animation variants — defined outside component so they're never recreated
+const skillListContainer = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.03, delayChildren: 0 }
+  },
+}
+const skillListItem = {
+  hidden: { opacity: 0, x: 10 },
+  show:   { opacity: 1, x: 0 },
 }
 
-// Stacked Skill Card Component - Premium polish with animated border glow
-const StackedSkillCard = ({ 
+// Stacked Skill Card Component — memoized to prevent re-renders from parent state
+const StackedSkillCard = memo(function StackedSkillCard({ 
   category, 
   isActive,
   isPreview1,
@@ -656,69 +636,51 @@ const StackedSkillCard = ({
   isVisible: boolean
   isHighlighted?: boolean
   isMobile: boolean
-}) => {
+}) {
   const IconComponent = category.icon
-  const prefersReducedMotion = useMediaPreferences().prefersReducedMotion
+  const { prefersReducedMotion } = useMediaPreferences()
 
-  // List container and item variants for fast stagger
-  const listContainer = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.03,
-        delayChildren: 0
-      }
-    }
-  }
-
-  const listItem = {
-    hidden: { opacity: 0, x: 10 },
-    show: {
-      opacity: 1,
-      x: 0
-    }
-  }
-
-
-  // Calculate transform and opacity based on position
-  const getTransform = () => {
+  // Memoize derived values so they don't recalculate on every render
+  const transform = useMemo(() => {
     if (!isVisible) return 'translateX(100%) scale(0.9) rotate(0deg)'
-    if (isActive) return 'translateX(0) translateY(0) scale(1) rotate(0deg)'
+    if (isActive)   return 'translateX(0) translateY(0) scale(1) rotate(0deg)'
     if (isPreview1) return 'translateX(26px) translateY(18px) scale(0.96) rotate(3deg)'
     if (isPreview2) return 'translateX(48px) translateY(34px) scale(0.92) rotate(5deg)'
     return 'translateX(100%) scale(0.9) rotate(0deg)'
-  }
+  }, [isVisible, isActive, isPreview1, isPreview2])
 
-  const getOpacity = () => {
+  const opacity = useMemo(() => {
     if (!isVisible) return 0
-    if (isActive) return 1
+    if (isActive)   return 1
     if (isPreview1) return 0.55
     if (isPreview2) return 0.35
     return 0
-  }
+  }, [isVisible, isActive, isPreview1, isPreview2])
 
-  const getZIndex = () => {
-    if (isActive) return 30
-    if (isPreview1) return 20
-    if (isPreview2) return 10
-    return 0
-  }
+  const zIndex = isActive ? 30 : isPreview1 ? 20 : isPreview2 ? 10 : 0
+
+  // Only apply expensive backdrop-filter on the active (visible) card
+  const cardStyle = useMemo(() => ({
+    background: 'linear-gradient(135deg, rgba(20, 20, 20, 0.92) 0%, rgba(12, 12, 12, 0.96) 100%)',
+    backdropFilter: isActive ? 'blur(10px)' : 'none',
+    WebkitBackdropFilter: isActive ? 'blur(10px)' : 'none',
+    boxShadow: !isActive ? 'inset 0 1px 0 rgba(255, 255, 255, 0.06)' : undefined,
+  }), [isActive])
 
   return (
     <motion.div
       className="absolute inset-0"
       style={{
-        zIndex: getZIndex(),
+        zIndex: zIndex,
         pointerEvents: isActive ? 'auto' : 'none'
       }}
       initial={false}
       animate={{
-        transform: getTransform(),
-        opacity: getOpacity()
+        transform: transform,
+        opacity: opacity,
       }}
       transition={{
-        duration: prefersReducedMotion ? 0 : 0.55,
+        duration: prefersReducedMotion ? 0 : isMobile ? 0.3 : 0.55,
         ease: EASE_OUT_QUART
       }}
     >
@@ -732,12 +694,7 @@ const StackedSkillCard = ({
                 ? 'border-white/[0.12] shadow-[0_22px_70px_rgba(0,0,0,0.55)]'
                 : 'border-white/[0.12] shadow-[0_18px_55px_rgba(0,0,0,0.45)]'
         }`}
-        style={{
-          background: 'linear-gradient(135deg, rgba(20, 20, 20, 0.92) 0%, rgba(12, 12, 12, 0.96) 100%)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          boxShadow: !isActive ? 'inset 0 1px 0 rgba(255, 255, 255, 0.06)' : undefined
-        }}
+        style={cardStyle}
       >
         {/* Animated Running Border Glow - Active Card Only (Desktop only for performance) */}
         {isActive && !prefersReducedMotion && !isMobile && (
@@ -799,19 +756,17 @@ const StackedSkillCard = ({
           <motion.div 
             className="flex-1 space-y-2 md:overflow-y-auto overflow-x-hidden skills-scroll pr-2 md:pr-0"
             style={{
-              // Allow vertical pan gestures to pass through to main page scroll
               touchAction: 'pan-y',
-              // Ensure touch events don't get trapped
               WebkitOverflowScrolling: 'touch'
             }}
-            variants={listContainer}
+            variants={skillListContainer}
             initial={false}
             animate={isActive ? "show" : "hidden"}
           >
             {category.skills.map((skill) => (
               <motion.div
                 key={skill}
-                variants={listItem}
+                variants={skillListItem}
                 transition={{ 
                   duration: 0.22, 
                   ease: EASE_OUT_QUART 
@@ -837,6 +792,6 @@ const StackedSkillCard = ({
       </div>
     </motion.div>
   )
-}
+})
 
 export default SkillsSection
