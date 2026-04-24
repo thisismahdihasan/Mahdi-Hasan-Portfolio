@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import Toast from './Toast'
@@ -8,6 +8,19 @@ import type { AboutContent } from '@/types/about'
 
 // ── Query key ────────────────────────────────────────────────────────────────
 const ABOUT_KEY = ['dashboard-about-content'] as const
+
+// ── Image upload constants ────────────────────────────────────────────────────
+const MAX_IMG_BYTES       = 8 * 1024 * 1024 // 8 MB
+const ALLOWED_IMG_TYPES   = ['image/jpeg', 'image/png', 'image/webp']
+const ALLOWED_IMG_EXTS    = ['.jpg', '.jpeg', '.png', '.webp']
+const ABOUT_IMG_VARIANTS  = ['about-photo.jpg', 'about-photo.jpeg', 'about-photo.png', 'about-photo.webp']
+
+const aboutPhotoPath = (file: File): string => {
+  const lower = file.name.toLowerCase()
+  if (lower.endsWith('.png'))                          return 'about-photo.png'
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'about-photo.jpg'
+  return 'about-photo.webp'
+}
 
 // ── Empty form state ─────────────────────────────────────────────────────────
 type FormState = Omit<AboutContent, 'id' | 'updated_at'>
@@ -48,6 +61,12 @@ const textareaCls =
 
 type ToastState = { message: string; type: 'success' | 'error' } | null
 
+type UploadState =
+  | { status: 'idle' }
+  | { status: 'uploading' }
+  | { status: 'done';  filename: string }
+  | { status: 'error'; message: string }
+
 // ── Component ────────────────────────────────────────────────────────────────
 export default function AboutEditor() {
   const queryClient = useQueryClient()
@@ -61,6 +80,8 @@ export default function AboutEditor() {
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [toast, setToast]   = useState<ToastState>(null)
+  const [imgUpload, setImgUpload] = useState<UploadState>({ status: 'idle' })
+  const imgInputRef = useRef<HTMLInputElement>(null)
 
   // Populate form once DB row loads
   useEffect(() => {
@@ -136,6 +157,50 @@ export default function AboutEditor() {
       about_image_url:       dbRow.about_image_url       ?? '',
     })
     setDirty(false)
+    setImgUpload({ status: 'idle' })
+  }
+
+  // ── About photo upload ────────────────────────────────────────────────────
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (imgInputRef.current) imgInputRef.current.value = ''
+    if (!file) return
+
+    const isAllowed =
+      ALLOWED_IMG_TYPES.includes(file.type) ||
+      ALLOWED_IMG_EXTS.some(ext => file.name.toLowerCase().endsWith(ext))
+    if (!isAllowed) {
+      setImgUpload({ status: 'error', message: 'Only JPG, PNG, or WebP images are accepted.' })
+      return
+    }
+    if (file.size > MAX_IMG_BYTES) {
+      setImgUpload({
+        status: 'error',
+        message: `File too large — maximum is 8 MB (this file is ${(file.size / 1024 / 1024).toFixed(1)} MB).`,
+      })
+      return
+    }
+
+    setImgUpload({ status: 'uploading' })
+
+    const newPath = aboutPhotoPath(file)
+
+    // Remove all other known variants so only one file exists in the bucket
+    const toRemove = ABOUT_IMG_VARIANTS.filter(v => v !== newPath)
+    await supabase.storage.from('about-images').remove(toRemove)
+
+    const { error: uploadError } = await supabase.storage
+      .from('about-images')
+      .upload(newPath, file, { upsert: true, contentType: file.type })
+
+    if (uploadError) {
+      setImgUpload({ status: 'error', message: uploadError.message })
+      return
+    }
+
+    const { data } = supabase.storage.from('about-images').getPublicUrl(newPath)
+    setStr('about_image_url', `${data.publicUrl}?v=${Date.now()}`)
+    setImgUpload({ status: 'done', filename: file.name })
   }
 
   // ── Loading ───────────────────────────────────────────────────────────────
@@ -431,6 +496,90 @@ export default function AboutEditor() {
               </div>
             </div>
 
+            {/* ── Photo card ── */}
+            <div className="rounded-2xl border border-white/[0.07] bg-[#141414] p-7">
+              <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-white/30 mb-5">
+                About Photo
+              </p>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  {/* Thumbnail preview */}
+                  <div className="w-20 h-20 rounded-xl overflow-hidden border border-white/[0.10] bg-white/[0.04] flex-shrink-0">
+                    {form.about_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={form.about_image_url}
+                        alt="About photo preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1">
+                        <span className="material-symbols-outlined text-white/20 text-[22px]">person</span>
+                        <span className="text-[9px] text-white/20 text-center leading-tight px-1">
+                          Local<br />fallback
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-3">
+                    <p className="text-xs text-white/50 leading-relaxed">
+                      {form.about_image_url
+                        ? 'Current photo from database.'
+                        : 'No photo uploaded — public site uses the local fallback image.'}
+                    </p>
+
+                    {/* Upload button */}
+                    <label className={`inline-flex items-center gap-1.5 cursor-pointer text-xs px-3 py-1.5 rounded-lg border transition-colors select-none
+                      ${imgUpload.status === 'uploading'
+                        ? 'border-white/[0.08] text-white/25 cursor-not-allowed bg-white/[0.02]'
+                        : 'border-white/[0.12] text-white/50 hover:text-white hover:border-[#D4AF37]/40 bg-white/[0.04] hover:bg-[#D4AF37]/[0.06]'
+                      }`}
+                    >
+                      {imgUpload.status === 'uploading' ? (
+                        <>
+                          <span className="w-3 h-3 border border-white/20 border-t-white/50 rounded-full animate-spin" />
+                          Uploading…
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-[14px]">add_photo_alternate</span>
+                          {form.about_image_url ? 'Replace Photo' : 'Upload Photo'}
+                        </>
+                      )}
+                      <input
+                        ref={imgInputRef}
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                        disabled={imgUpload.status === 'uploading'}
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {/* Status feedback */}
+                    {imgUpload.status === 'done' && (
+                      <span className="flex items-center gap-1 text-xs text-green-400/80">
+                        <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                        {imgUpload.filename} uploaded — save to apply
+                      </span>
+                    )}
+                    {imgUpload.status === 'error' && (
+                      <span className="flex items-center gap-1 text-xs text-red-400/80">
+                        <span className="material-symbols-outlined text-[13px]">error</span>
+                        {imgUpload.message}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-white/20 leading-relaxed">
+                  Accepted: JPG, PNG, WebP · Max 8 MB. Upload replaces the previous photo automatically.
+                </p>
+              </div>
+            </div>
+
             {/* ── Save bar ── */}
             <div className="rounded-2xl border border-white/[0.07] bg-[#141414] px-7 py-5 flex items-center gap-3">
               <button
@@ -545,6 +694,26 @@ export default function AboutEditor() {
                   <p className="text-xs text-white/40 mt-0.5">
                     {form.education_subtitle || <span className="text-white/20 italic">Subtitle…</span>}
                   </p>
+                </div>
+
+                {/* Photo preview */}
+                <div className="relative border-t border-white/[0.06] pt-4">
+                  <p className="text-[11px] text-white/25 uppercase tracking-widest mb-2">About photo</p>
+                  <div className="w-full aspect-[4/3] rounded-xl overflow-hidden border border-white/[0.08] bg-white/[0.03]">
+                    {form.about_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={form.about_image_url}
+                        alt="About photo preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                        <span className="material-symbols-outlined text-white/15 text-[28px]">image</span>
+                        <span className="text-[10px] text-white/20">Local fallback</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
