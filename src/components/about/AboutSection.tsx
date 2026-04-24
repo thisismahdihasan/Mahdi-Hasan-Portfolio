@@ -14,8 +14,65 @@ import Container from '@/components/shared/Container'
 import SectionHeader from '@/components/shared/SectionHeader'
 import { EASE_OUT_QUART } from '@/lib/animations'
 import { useMediaPreferences } from '@/hooks/useMediaQueries'
+import type { AboutContent } from '@/types/about'
 
-const AboutSection = () => {
+// ── Fallback content — renders if DB fetch fails or prop is absent ────────────
+const FALLBACK: AboutContent = {
+  id: 1,
+  section_subtitle: 'A quick story about where I started and what I build now.',
+  intro_before_emphasis: 'I come from a non-traditional background',
+  intro_emphasis: '—my academic path was in History—',
+  intro_after_emphasis:
+    "but I was always drawn to logic, structure, and building things. The turning point came when I realized I was preparing for a future I didn't want. I chose to pivot, got the support I needed, and began my development journey through Programming Hero—then kept growing through real projects and consistent practice.",
+  highlight_quote:
+    'From history to frontend — I build clean, structured UI that feels product-ready.',
+  current_paragraph:
+    "Today, I work with the MERN stack with a frontend-first mindset: crafting responsive layouts, building reusable React components, and integrating real features like authentication and APIs. I care about clarity—both in code and in the user experience. I'm also building with Next.js and improving my workflow for scalable, production-ready apps.",
+  core_expertise: [
+    'Responsive Layouts (mobile-first)',
+    'React + Component-Based UI',
+    'API Integration + Auth',
+    'Tailwind CSS + Modern UI',
+    'MERN Foundations (Node/Express/MongoDB)',
+    'Deployment (Vercel/Netlify/Firebase)',
+  ],
+  beyond_code_title: 'Beyond Code',
+  beyond_code_paragraph:
+    "When I'm not coding, I'm usually at the gym. Training keeps me consistent and focused—and that same discipline shows up in how I work: I stay calm under pressure, iterate through feedback, and keep improving until the details feel right.",
+  beyond_code_tags: ['Discipline', 'Resilience'],
+  education_label: 'Academic Background',
+  education_school: 'Govt. Titumir College',
+  education_subtitle: 'History Major turned Developer',
+}
+
+interface AboutSectionProps {
+  aboutContent?: AboutContent
+}
+
+const AboutSection = ({ aboutContent }: AboutSectionProps) => {
+  // Merge DB content with fallback — any missing/empty field falls back gracefully
+  const c: AboutContent = {
+    ...FALLBACK,
+    ...aboutContent,
+    section_subtitle:      aboutContent?.section_subtitle      || FALLBACK.section_subtitle,
+    intro_before_emphasis: aboutContent?.intro_before_emphasis || FALLBACK.intro_before_emphasis,
+    intro_emphasis:        aboutContent?.intro_emphasis        || FALLBACK.intro_emphasis,
+    intro_after_emphasis:  aboutContent?.intro_after_emphasis  || FALLBACK.intro_after_emphasis,
+    highlight_quote:       aboutContent?.highlight_quote       || FALLBACK.highlight_quote,
+    current_paragraph:     aboutContent?.current_paragraph     || FALLBACK.current_paragraph,
+    core_expertise:        (aboutContent?.core_expertise?.length ?? 0) > 0
+                             ? aboutContent!.core_expertise
+                             : FALLBACK.core_expertise,
+    beyond_code_title:     aboutContent?.beyond_code_title     || FALLBACK.beyond_code_title,
+    beyond_code_paragraph: aboutContent?.beyond_code_paragraph || FALLBACK.beyond_code_paragraph,
+    beyond_code_tags:      (aboutContent?.beyond_code_tags?.length ?? 0) > 0
+                             ? aboutContent!.beyond_code_tags
+                             : FALLBACK.beyond_code_tags,
+    education_label:       aboutContent?.education_label       || FALLBACK.education_label,
+    education_school:      aboutContent?.education_school      || FALLBACK.education_school,
+    education_subtitle:    aboutContent?.education_subtitle    || FALLBACK.education_subtitle,
+    about_image_url:       aboutContent?.about_image_url       || undefined,
+  }
   // Use shared media query hooks for better performance
   const { isMobile } = useMediaPreferences()
 
@@ -137,7 +194,7 @@ const AboutSection = () => {
           <motion.div variants={childVariants} style={{ willChange: "transform, opacity, filter" }}>
             <SectionHeader 
               title="About" 
-              subtitle="A quick story about where I started and what I build now."
+              subtitle={c.section_subtitle}
             />
           </motion.div>
 
@@ -159,7 +216,7 @@ const AboutSection = () => {
               <div className="relative z-10 bg-card-dark border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
                 <div className="aspect-[4/5] md:aspect-[4/5] relative portrait-image bg-zinc-900/50 md:bg-transparent p-2 md:p-0">
                   <Image
-                    src="/formal_about.webp"
+                    src={c.about_image_url || '/formal_about.webp'}
                     alt="Modern professional portrait of Mahdi Hasan in a minimalist setting"
                     fill
                     className="object-contain md:object-cover object-center rounded-2xl md:rounded-none"
@@ -176,10 +233,10 @@ const AboutSection = () => {
                     </div>
                     <div>
                       <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
-                        Academic Background
+                        {c.education_label}
                       </p>
-                      <p className="text-white font-semibold text-sm md:text-base my-1">Govt. Titumir College</p>
-                      <p className="text-xs text-zinc-400">History Major turned Developer</p>
+                      <p className="text-white font-semibold text-sm md:text-base my-1">{c.education_school}</p>
+                      <p className="text-xs text-zinc-400">{c.education_subtitle}</p>
                     </div>
                   </div>
                 </div>
@@ -203,23 +260,23 @@ const AboutSection = () => {
                     className="text-sm md:text-base leading-relaxed text-zinc-400 tracking-[0.01em]" 
                     data-lens="on"
                   >
-                    I come from a non-traditional background{' '}
-                    <span className="text-white font-medium">—my academic path was in History—</span>{' '}
-                    but I was always drawn to logic, structure, and building things. The turning point came when I realized I was preparing for a future I didn't want. I chose to pivot, got the support I needed, and began my development journey through Programming Hero—then kept growing through real projects and consistent practice.
+                    {c.intro_before_emphasis}{' '}
+                    <span className="text-white font-medium">{c.intro_emphasis}</span>{' '}
+                    {c.intro_after_emphasis}
                   </p>
                   
                   <p 
                     className="text-sm md:text-lg leading-relaxed text-zinc-200 italic border-l-2 border-primary pl-6 my-4"  
                     data-lens="on"
                   >
-                    From history to frontend — I build clean, structured UI that feels product-ready.
+                    {c.highlight_quote}
                   </p>
                   
                   <p 
                     className="text-sm md:text-base leading-relaxed text-zinc-400 tracking-[0.01em]" 
                     data-lens="on"
                   >
-                    Today, I work with the MERN stack with a frontend-first mindset: crafting responsive layouts, building reusable React components, and integrating real features like authentication and APIs. I care about clarity—both in code and in the user experience. I'm also building with Next.js and improving my workflow for scalable, production-ready apps.
+                    {c.current_paragraph}
                   </p>
                 </motion.div>
 
@@ -242,60 +299,18 @@ const AboutSection = () => {
                     className="space-y-3"
                     variants={listVariants}
                   >
-                    <motion.li 
-                      className="flex items-center gap-3 text-sm leading-6 text-zinc-400" 
-                      data-lens="on"
-                      variants={listItemVariants}
-                      style={{ willChange: "transform, opacity" }}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                      Responsive Layouts (mobile-first)
-                    </motion.li>
-                    <motion.li 
-                      className="flex items-center gap-3 text-sm leading-6 text-zinc-400" 
-                      data-lens="on"
-                      variants={listItemVariants}
-                      style={{ willChange: "transform, opacity" }}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                      React + Component-Based UI
-                    </motion.li>
-                    <motion.li 
-                      className="flex items-center gap-3 text-sm leading-6 text-zinc-400" 
-                      data-lens="on"
-                      variants={listItemVariants}
-                      style={{ willChange: "transform, opacity" }}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                      API Integration + Auth
-                    </motion.li>
-                    <motion.li 
-                      className="flex items-center gap-3 text-sm leading-6 text-zinc-400" 
-                      data-lens="on"
-                      variants={listItemVariants}
-                      style={{ willChange: "transform, opacity" }}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                      Tailwind CSS + Modern UI
-                    </motion.li>
-                    <motion.li 
-                      className="flex items-center gap-3 text-sm leading-6 text-zinc-400" 
-                      data-lens="on"
-                      variants={listItemVariants}
-                      style={{ willChange: "transform, opacity" }}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                      MERN Foundations (Node/Express/MongoDB)
-                    </motion.li>
-                    <motion.li 
-                      className="flex items-center gap-3 text-sm leading-6 text-zinc-400" 
-                      data-lens="on"
-                      variants={listItemVariants}
-                      style={{ willChange: "transform, opacity" }}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                      Deployment (Vercel/Netlify/Firebase)
-                    </motion.li>
+                    {c.core_expertise.map((item) => (
+                      <motion.li
+                        key={item}
+                        className="flex items-center gap-3 text-sm leading-6 text-zinc-400"
+                        data-lens="on"
+                        variants={listItemVariants}
+                        style={{ willChange: "transform, opacity" }}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0"></span>
+                        {item}
+                      </motion.li>
+                    ))}
                   </motion.ul>
                 </motion.div>
 
@@ -308,21 +323,22 @@ const AboutSection = () => {
                   <div className="flex items-center gap-2 text-primary">
                     <Dumbbell className="w-5 h-5" />
                     <h3 className="text-white font-bold tracking-wide uppercase text-sm" data-lens="on">
-                      Beyond Code
+                      {c.beyond_code_title}
                     </h3>
                   </div>
                   <p className="text-sm leading-6 text-zinc-400" data-lens="on">
-                    When I'm not coding, I'm usually at the gym. Training keeps me consistent and focused—and that same discipline shows up in how I work: I stay calm under pressure, iterate through feedback, and keep improving until the details feel right.
+                    {c.beyond_code_paragraph}
                   </p>
                   <div className="flex gap-4 mt-2">
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-500 uppercase tracking-tighter">
-                      <BadgeCheck className="w-4 h-4" />
-                      Discipline
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-500 uppercase tracking-tighter">
-                      <BadgeCheck className="w-4 h-4" />
-                      Resilience
-                    </div>
+                    {c.beyond_code_tags.map((tag) => (
+                      <div
+                        key={tag}
+                        className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-500 uppercase tracking-tighter"
+                      >
+                        <BadgeCheck className="w-4 h-4" />
+                        {tag}
+                      </div>
+                    ))}
                   </div>
                 </motion.div>
               </div>

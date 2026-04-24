@@ -18,14 +18,16 @@ import { useEntryLoader } from '@/hooks/useEntryLoader'
 import type { Project } from '@/types/project'
 import type { SerializableSkillCategory } from '@/app/page'
 import type { HeroContent } from '@/types/hero'
+import type { AboutContent } from '@/types/about'
 
 interface Props {
   initialProjects?: Project[]
   initialSkillCategories?: SerializableSkillCategory[]
   initialHeroContent?: HeroContent
+  initialAboutContent?: AboutContent
 }
 
-export default function PortfolioClient({ initialProjects, initialSkillCategories, initialHeroContent }: Props) {
+export default function PortfolioClient({ initialProjects, initialSkillCategories, initialHeroContent, initialAboutContent }: Props) {
   const {
     showEntryLoader,
     showRefreshLoader,
@@ -95,7 +97,7 @@ export default function PortfolioClient({ initialProjects, initialSkillCategorie
 
             <SkillsSection initialSkillCategories={initialSkillCategories} />
             <ProjectsSection initialProjects={initialProjects} />
-            <AboutSection />
+            <AboutSection aboutContent={initialAboutContent} />
             <ContactSection />
             <Footer />
           </main>
