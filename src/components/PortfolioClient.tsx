@@ -17,13 +17,15 @@ import RefreshLoader from '@/components/RefreshLoader'
 import { useEntryLoader } from '@/hooks/useEntryLoader'
 import type { Project } from '@/types/project'
 import type { SerializableSkillCategory } from '@/app/page'
+import type { HeroContent } from '@/types/hero'
 
 interface Props {
   initialProjects?: Project[]
   initialSkillCategories?: SerializableSkillCategory[]
+  initialHeroContent?: HeroContent
 }
 
-export default function PortfolioClient({ initialProjects, initialSkillCategories }: Props) {
+export default function PortfolioClient({ initialProjects, initialSkillCategories, initialHeroContent }: Props) {
   const {
     showEntryLoader,
     showRefreshLoader,
@@ -84,7 +86,7 @@ export default function PortfolioClient({ initialProjects, initialSkillCategorie
             {/* Hero Section */}
             <section id="hero" className="scroll-mt-24 flex flex-col md:flex-row md:gap-10 md:items-center lg:flex-row lg:gap-0 lg:items-stretch lg:min-h-screen relative z-10 pt-[28px] md:pt-16 mb-12 sm:mb-16 md:mb-28">
               <div className="w-full md:w-[55%] lg:w-[55%] bg-black/20 lg:border-r lg:border-neutral-200/20 dark:lg:border-neutral-800/80 p-6 sm:p-8 md:p-12 relative z-20">
-                <Hero key={`hero-${revealKey}`} entryRevealReady={entryRevealReady} />
+                <Hero key={`hero-${revealKey}`} entryRevealReady={entryRevealReady} heroContent={initialHeroContent} />
               </div>
               <div className="w-full md:w-[45%] lg:w-[45%] relative z-[100] profile-image-container lg:min-h-screen">
                 <ProfileImage key={`image-${revealKey}`} entryRevealReady={entryRevealReady} />

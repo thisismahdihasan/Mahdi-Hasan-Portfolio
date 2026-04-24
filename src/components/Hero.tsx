@@ -2,9 +2,9 @@
 
 import { motion } from 'framer-motion'
 import type { Variants } from 'framer-motion'
-import { useEffect, useState } from 'react'
 import { EASE_OUT } from '@/lib/animations'
 import { useMobile } from '@/hooks/useMediaQueries'
+import type { HeroContent } from '@/types/hero'
 
 /**
  * MOBILE TYPOGRAPHY SCALE PATTERN (Reusable across all sections):
@@ -22,11 +22,36 @@ import { useMobile } from '@/hooks/useMediaQueries'
  * - Desktop: md:leading-none, md:leading-tight, md:leading-relaxed
  */
 
-interface HeroProps {
-  entryRevealReady?: boolean
+// Fallback values — site never breaks if DB fetch fails or row is missing
+const FALLBACK: HeroContent = {
+  id: 1,
+  name: 'MAHDI HASAN',
+  role: 'Junior Frontend Developer',
+  description:
+    'Building responsive web applications with React, Next.js, and Tailwind CSS. Experienced in full-stack development using the MERN stack with a focus on clean code and user-centric design.',
+  primary_cta_label: 'Download Resume',
+  primary_cta_url: "/Mahdi_Hasan's_Resume.pdf",
+  secondary_cta_label: 'View Projects',
 }
 
-const Hero = ({ entryRevealReady = true }: HeroProps) => {
+interface HeroProps {
+  entryRevealReady?: boolean
+  heroContent?: HeroContent
+}
+
+const Hero = ({ entryRevealReady = true, heroContent }: HeroProps) => {
+  // Merge DB content with fallback — any missing/empty field falls back gracefully
+  const content: HeroContent = {
+    ...FALLBACK,
+    ...heroContent,
+    name:                heroContent?.name                || FALLBACK.name,
+    role:                heroContent?.role                || FALLBACK.role,
+    description:         heroContent?.description         || FALLBACK.description,
+    primary_cta_label:   heroContent?.primary_cta_label   || FALLBACK.primary_cta_label,
+    primary_cta_url:     heroContent?.primary_cta_url     || FALLBACK.primary_cta_url,
+    secondary_cta_label: heroContent?.secondary_cta_label || FALLBACK.secondary_cta_label,
+  }
+
   // Use shared mobile detection hook for better performance
   const isMobile = useMobile()
 
@@ -119,14 +144,14 @@ const Hero = ({ entryRevealReady = true }: HeroProps) => {
         {/* Hero Name - Staggered reveal */}
         <motion.div variants={itemVariants}>
           <h1 className="hero-heading text-3xl sm:text-4xl md:text-4xl lg:text-6xl tracking-tighter leading-tight md:leading-none text-neutral-900 dark:text-primary hover:text-brand-gold transition-all duration-300 cursor-pointer hover:drop-shadow-[0_0_20px_rgb(var(--brand-gold)_/_0.3)]" data-lens="on">
-            MAHDI HASAN
+            {content.name}
           </h1>
         </motion.div>
         
         {/* Subheading - Staggered reveal */}
         <motion.div variants={subtitleVariants}>
           <h2 className="hero-subheading mt-3 md:mt-3 lg:mt-4 text-lg sm:text-xl md:text-xl lg:text-3xl xl:text-4xl tracking-tight leading-snug text-neutral-700 dark:text-neutral-300 hover:text-brand-gold-alt transition-all duration-300 cursor-pointer hover:drop-shadow-[0_0_15px_rgb(var(--brand-gold-alt)_/_0.25)]" data-lens="on">
-            Junior Frontend Developer
+            {content.role}
           </h2>
         </motion.div>
         
@@ -134,7 +159,7 @@ const Hero = ({ entryRevealReady = true }: HeroProps) => {
         <motion.div variants={descriptionVariants}>
           <div className="hero-description mt-4 md:mt-4 lg:mt-6">
             <span className="inline-block text-xs sm:text-base md:text-base lg:text-lg leading-relaxed md:leading-relaxed text-neutral-600 dark:text-neutral-400 opacity-80 sm:opacity-70 hover:opacity-100 hover:text-neutral-100 dark:hover:text-neutral-50 transition-all duration-300 cursor-pointer max-w-[40ch] md:max-w-none" data-lens="on">
-              Building responsive web applications with React, Next.js, and Tailwind CSS. Experienced in full-stack development using the MERN stack with a focus on clean code and user-centric design.
+              {content.description}
             </span>
           </div>
         </motion.div>
@@ -146,7 +171,7 @@ const Hero = ({ entryRevealReady = true }: HeroProps) => {
         >
           {/* Primary CTA - Resume */}
           <motion.a
-            href="/Mahdi_Hasan's_Resume.pdf"
+            href={content.primary_cta_url}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto px-6 py-3 text-sm font-medium bg-brand-gold text-black rounded-md text-center sm:text-left min-w-[140px]"
@@ -156,18 +181,18 @@ const Hero = ({ entryRevealReady = true }: HeroProps) => {
               backgroundColor: "rgb(184 152 74)",
               boxShadow: "0 0 25px rgb(207 174 82 / 0.4), 0 8px 32px rgb(207 174 82 / 0.2)"
             }}
-            whileTap={{ scale: isMobile ? 0.98 : 0.95 }} // Lighter tap on mobile
+            whileTap={{ scale: isMobile ? 0.98 : 0.95 }}
             transition={{ 
               type: "spring", 
               stiffness: 400, 
               damping: 10,
-              duration: isMobile ? 0.4 : 0.8 // Faster on mobile
+              duration: isMobile ? 0.4 : 0.8
             }}
           >
-            Download Resume
+            {content.primary_cta_label}
           </motion.a>
           
-          {/* Secondary CTA - View Projects */}
+          {/* Secondary CTA - View Projects (always scrolls to #projects) */}
           <motion.button 
             className="w-full sm:w-auto px-6 py-3 text-sm font-medium border-2 border-neutral-700 dark:border-neutral-300 text-neutral-800 dark:text-primary rounded-md bg-transparent min-w-[140px]"
             data-lens="on"
@@ -196,15 +221,15 @@ const Hero = ({ entryRevealReady = true }: HeroProps) => {
               color: "rgb(207 174 82)",
               boxShadow: "0 0 20px rgb(207 174 82 / 0.3), 0 6px 24px rgb(207 174 82 / 0.15)"
             }}
-            whileTap={{ scale: isMobile ? 0.98 : 0.95 }} // Lighter tap on mobile
+            whileTap={{ scale: isMobile ? 0.98 : 0.95 }}
             transition={{ 
               type: "spring", 
               stiffness: 400, 
               damping: 10,
-              duration: isMobile ? 0.4 : 0.8 // Faster on mobile
+              duration: isMobile ? 0.4 : 0.8
             }}
           >
-            View Projects
+            {content.secondary_cta_label}
           </motion.button>
         </motion.div>
       </div>
