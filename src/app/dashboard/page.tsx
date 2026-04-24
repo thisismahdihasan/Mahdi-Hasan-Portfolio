@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 import DashboardLayout from './components/DashboardLayout'
@@ -11,8 +12,9 @@ import ProjectsManager from './components/ProjectsManager'
 import SkillsManager from './components/SkillsManager'
 import AnalyticsSection from './components/AnalyticsSection'
 import SettingsSection from './components/SettingsSection'
+import InboxSection from './components/InboxSection'
 
-type Section = 'overview' | 'home' | 'about' | 'projects' | 'skills' | 'analytics' | 'settings'
+type Section = 'overview' | 'home' | 'about' | 'projects' | 'skills' | 'analytics' | 'inbox' | 'settings'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -35,6 +37,21 @@ export default function DashboardPage() {
     })
     return () => subscription.unsubscribe()
   }, [])
+
+  // ── Unread count for inbox badge (lightweight HEAD query) ────────────────
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['dashboard-contact-messages-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('contact_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'unread')
+      if (error) return 0
+      return count ?? 0
+    },
+    enabled: !!user,
+    refetchInterval: 60_000, // refresh every minute in background
+  })
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -128,6 +145,8 @@ export default function DashboardPage() {
         return <AnalyticsSection />
       case 'settings':
         return <SettingsSection user={user} onSignOut={handleSignOut} />
+      case 'inbox':
+        return <InboxSection />
     }
   }
 
@@ -137,6 +156,7 @@ export default function DashboardPage() {
       active={section}
       onNavigate={setSection}
       onSignOut={handleSignOut}
+      unreadCount={unreadCount}
     >
       {renderSection()}
     </DashboardLayout>

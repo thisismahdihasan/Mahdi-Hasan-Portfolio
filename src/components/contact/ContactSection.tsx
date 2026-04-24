@@ -157,6 +157,32 @@ const ContactSection = () => {
 
     setIsSubmitting(true)
     setSubmitStatus('idle')
+
+    // ── Fire-and-forget DB persistence — never blocks EmailJS or UI ──────
+    // Errors are logged to console but do not affect the user-facing toast.
+    fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        message: formData.message,
+        honeypot: '',
+        source_page: typeof window !== 'undefined' ? window.location.pathname : '/',
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          console.error('[ContactSection] /api/contact failed:', res.status, body)
+        } else {
+          console.log('[ContactSection] /api/contact saved successfully')
+        }
+      })
+      .catch((err) => {
+        console.error('[ContactSection] /api/contact network error:', err)
+      })
     
     try {
       // Send email using EmailJS
@@ -422,6 +448,17 @@ const ContactSection = () => {
                     {errors.message && (
                       <p className="text-red-400 text-xs px-1">{errors.message}</p>
                     )}
+                  </div>
+
+                  {/* Honeypot — hidden from humans, catches bots */}
+                  <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+                    <input
+                      type="text"
+                      name="honeypot"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      defaultValue=""
+                    />
                   </div>
 
                   <button

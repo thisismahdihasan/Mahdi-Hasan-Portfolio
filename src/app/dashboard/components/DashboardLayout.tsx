@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
 
-type Section = 'overview' | 'home' | 'about' | 'projects' | 'skills' | 'analytics' | 'settings'
+type Section = 'overview' | 'home' | 'about' | 'projects' | 'skills' | 'analytics' | 'inbox' | 'settings'
 
 interface NavItem {
   id: Section
@@ -18,6 +18,7 @@ const NAV: NavItem[] = [
   { id: 'projects',   label: 'Projects',   icon: 'folder_open' },
   { id: 'skills',     label: 'Skills',     icon: 'auto_awesome' },
   { id: 'analytics',  label: 'Analytics',  icon: 'insights' },
+  { id: 'inbox',      label: 'Inbox',      icon: 'inbox' },
   { id: 'settings',   label: 'Settings',   icon: 'settings' },
 ]
 
@@ -26,10 +27,11 @@ interface Props {
   active: Section
   onNavigate: (s: Section) => void
   onSignOut: () => void
+  unreadCount?: number
   children: ReactNode
 }
 
-export default function DashboardLayout({ user, active, onNavigate, onSignOut, children }: Props) {
+export default function DashboardLayout({ user, active, onNavigate, onSignOut, unreadCount = 0, children }: Props) {
   const initials = user.email?.slice(0, 2).toUpperCase() ?? 'AD'
 
   return (
@@ -59,6 +61,11 @@ export default function DashboardLayout({ user, active, onNavigate, onSignOut, c
               >
                 <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
                 <span className="font-medium tracking-wide">{item.label}</span>
+                {item.id === 'inbox' && unreadCount > 0 && (
+                  <span className="ml-auto min-w-[18px] h-[18px] rounded-full bg-[#D4AF37] text-black text-[10px] font-bold flex items-center justify-center px-1">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -121,11 +128,16 @@ export default function DashboardLayout({ user, active, onNavigate, onSignOut, c
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 transition-colors
+              className={`flex flex-col items-center justify-center gap-0.5 px-3 py-1 transition-colors relative
                 ${isActive ? 'text-[#D4AF37]' : 'text-white/30 hover:text-white/60'}`}
             >
               <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
               <span className="text-[9px] uppercase tracking-wider font-semibold">{item.label}</span>
+              {item.id === 'inbox' && unreadCount > 0 && (
+                <span className="absolute top-0.5 right-1.5 min-w-[14px] h-[14px] rounded-full bg-[#D4AF37] text-black text-[9px] font-bold flex items-center justify-center px-0.5">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </button>
           )
         })}
