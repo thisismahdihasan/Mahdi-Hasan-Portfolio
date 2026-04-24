@@ -3,71 +3,75 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { Variants } from 'framer-motion'
-import { 
-  SiReact, 
-  SiJavascript,
-  SiTailwindcss,
-  SiNodedotjs, 
-  SiExpress, 
-  SiMongodb, 
-  SiGit, 
-  SiFirebase, 
-  SiNetlify 
-} from 'react-icons/si'
-import { FaCode, FaServer, FaDatabase, FaTools } from 'react-icons/fa'
 import { EASE_OUT, EASE_OUT_QUART } from '@/lib/animations'
 import { useMediaPreferences } from '@/hooks/useMediaQueries'
-
-interface OrbitalIcon {
-  id: string
-  name: string
-  icon: any
-  description: string
-  category: string
-}
-
-const orbitalIcons: OrbitalIcon[] = [
-  { id: 'react', name: 'React', icon: SiReact, description: 'Component-based UI library for building dynamic interfaces', category: 'Frontend' },
-  { id: 'javascript', name: 'JavaScript', icon: SiJavascript, description: 'Modern ES6+ JavaScript for interactive web applications', category: 'Frontend' },
-  { id: 'tailwind', name: 'Tailwind CSS', icon: SiTailwindcss, description: 'Utility-first CSS framework for rapid UI development', category: 'Frontend' },
-  { id: 'nodejs', name: 'Node.js', icon: SiNodedotjs, description: 'JavaScript runtime for building scalable server applications', category: 'Backend' },
-  { id: 'mongodb', name: 'MongoDB', icon: SiMongodb, description: 'NoSQL database for flexible, document-based data storage', category: 'Database' },
-  { id: 'express', name: 'Express.js', icon: SiExpress, description: 'Minimal web framework for Node.js backend services', category: 'Backend' },
-  { id: 'git', name: 'Git', icon: SiGit, description: 'Version control system for tracking code changes', category: 'Tools' },
-  { id: 'firebase', name: 'Firebase', icon: SiFirebase, description: 'Backend-as-a-service platform for rapid development', category: 'Database' },
-  { id: 'netlify', name: 'Netlify', icon: SiNetlify, description: 'Modern hosting platform for web applications', category: 'Tools' }
-]
-
-const skillCategories = [
-  {
-    title: 'Frontend',
-    icon: FaCode,
-    skills: ['React', 'Next.js', 'JavaScript', 'Tailwind CSS', 'HTML5', 'CSS3'],
-    relatedOrbIcons: ['react', 'javascript', 'tailwind']
-  },
-  {
-    title: 'Backend',
-    icon: FaServer,
-    skills: ['Node.js', 'Express.js', 'REST APIs'],
-    relatedOrbIcons: ['nodejs', 'express']
-  },
-  {
-    title: 'Database & Auth',
-    icon: FaDatabase,
-    skills: ['MongoDB', 'Firebase', 'JWT'],
-    relatedOrbIcons: ['mongodb', 'firebase']
-  },
-  {
-    title: 'Tools & Workflow',
-    icon: FaTools,
-    skills: ['Git', 'GitHub', 'VS Code', 'Postman', 'Netlify', 'Vercel'],
-    relatedOrbIcons: ['git', 'netlify']
-  }
-]
+import { orbitalIcons, skillCategories as fallbackCategories } from '@/data/skills'
+import type { OrbitalIcon, SkillCategory } from '@/data/skills'
+import { supabase } from '@/lib/supabase'
 
 const SkillsSection = () => {
   // Use shared media query hooks for better performance
   const { isMobile, prefersReducedMotion } = useMediaPreferences()
+
+  // Seeded with static fallback; replaced by DB data when available
+  const [skillCategories, setSkillCategories] = useState<SkillCategory[]>(fallbackCategories)
+
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        const { data: catData, error: catError } = await supabase
+          .from('skill_categories')
+          .select('id, title')
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: true })
+
+        if (catError || !catData || catData.length === 0) {
+          console.warn('[SkillsSection] Categories fetch failed — using fallback:', catError?.message)
+          return
+        }
+
+        const { data: skillData, error: skillError } = await supabase
+          .from('skills')
+          .select('name, category_id')
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: true })
+
+        if (skillError || !skillData) {
+          console.warn('[SkillsSection] Skills fetch failed — using fallback:', skillError?.message)
+          return
+        }
+
+        // Build the same SkillCategory shape the UI already uses
+        const mapped: SkillCategory[] = catData.map((cat) => {
+          const catSkills = skillData
+            .filter((s) => s.category_id === cat.id)
+            .map((s) => s.name)
+
+          // Preserve relatedOrbIcons from static fallback by matching on title
+          const fallback = fallbackCategories.find((f) => f.title === cat.title)
+
+          return {
+            title: cat.title,
+            icon: fallback?.icon ?? fallbackCategories[0].icon,
+            skills: catSkills.length > 0 ? catSkills : (fallback?.skills ?? []),
+            relatedOrbIcons: fallback?.relatedOrbIcons ?? [],
+          }
+        })
+
+        if (mapped.length === 0) {
+          console.warn('[SkillsSection] Mapped categories empty — using fallback')
+          return
+        }
+
+        console.log('[SkillsSection] Loaded categories from DB:', mapped.length)
+        setSkillCategories(mapped)
+      } catch (err) {
+        console.warn('[SkillsSection] Supabase fetch failed — using fallback:', err)
+      }
+    }
+
+    fetchSkills()
+  }, [])
 
   const [selectedIcon, setSelectedIcon] = useState<OrbitalIcon | null>(null)
   const [highlightedCard, setHighlightedCard] = useState<string | null>(null)

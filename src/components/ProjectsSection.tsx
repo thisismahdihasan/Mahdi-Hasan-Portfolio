@@ -8,25 +8,15 @@ import dynamic from 'next/dynamic'
 import Container from '@/components/shared/Container'
 import { EASE_OUT_QUART } from '@/lib/animations'
 import { useMediaPreferences } from '@/hooks/useMediaQueries'
+import { projects as fallbackProjects } from '@/data/projects'
+import type { Project } from '@/data/projects'
+import { supabase } from '@/lib/supabase'
 
 // ✅ Dynamic import for Work Summary Modal - only loads when needed
 const WorkSummaryModal = dynamic(() => import('./WorkSummaryModal'), {
   ssr: false, // Don't render on server
   loading: () => null // No loading component needed
 })
-
-interface Project {
-  id: number
-  title: string
-  description: string
-  summary: string
-  tech: string[]
-  image: string
-  liveUrl: string
-  sourceUrl?: string
-  category: 'frontend' | 'client'
-  bullets?: string[]
-}
 
 const ProjectsSection = () => {
   // Use shared media query hooks for better performance
@@ -38,71 +28,81 @@ const ProjectsSection = () => {
     return () => setIsMounted(false)
   }, [])
 
-  // Memoize projects array to prevent recreation on every render
-  const projects: Project[] = useMemo(() => [
-    {
-      id: 1,
-      title: 'Voyago',
-      description: 'A modern vehicle booking platform that makes renting and managing cars simple—users can explore, book, and track rides, while hosts control listings and availability through a clean dashboard.',
-      summary: 'Vehicle booking platform',
-      tech: ['React', 'Tailwind CSS', 'Node.js', 'Express', 'MongoDB', 'Firebase'],
-      image: '/voyago.webp',
-      liveUrl: 'https://voyago-2805d.web.app',
-      sourceUrl: 'https://github.com/mahdi9162/Voyago-Client-Side.git',
-      category: 'frontend'
-    },
-    {
-      id: 2,
-      title: 'EduBridge',
-      description: 'A trust-focused tuition management system designed to keep tutors and students aligned—handling learning flow, tracking progress, and daily class coordination without unnecessary complexity.',
-      summary: 'Tuition management system',
-      tech: ['React', 'Tailwind CSS', 'Firebase', 'Node.js', 'MongoDB'],
-      image: '/edubridge.webp',
-      liveUrl: 'https://edubridge-production.web.app',
-      sourceUrl: 'https://github.com/mahdi9162/EduBridge-Client-Side.git',
-      category: 'frontend'
-    },
-    {
-      id: 3,
-      title: 'AppVerse',
-      description: 'A sleek productivity app explorer where users can discover tools, view detailed insights, and manage installs instantly—built for smooth interaction, clarity, and speed.',
-      summary: 'Productivity app explorer',
-      tech: ['React', 'Tailwind', 'JavaScript'],
-      image: '/appverse.webp',
-      liveUrl: 'https://appversee.netlify.app',
-      sourceUrl: 'https://github.com/mahdi9162/AppVerse.git',
-      category: 'frontend'
-    },
-    {
-      id: 4,
-      title: 'Skillora',
-      description: 'A local 1-on-1 skill-sharing platform that connects learners with nearby mentors—making it easy to discover skills, schedule sessions, and learn in a more personal, real-world way.',
-      summary: 'Skill-sharing platform',
-      tech: ['React', 'Tailwind CSS', 'Firebase', 'MongoDB', 'Express'],
-      image: '/skillora.webp',
-      liveUrl: 'https://skillora-505c9.web.app',
-      sourceUrl: 'https://github.com/mahdi9162/Skillora.git',
-      category: 'frontend'
-    },
-    {
-      id: 5,
-      title: 'SwashPeak — Storefront UI Refresh (Client)',
-      description: 'Frontend improvements shipped to a live storefront—navigation, responsive layout, and UI polish.',
-      summary: 'E-commerce storefront redesign',
-      tech: ['HTML', 'CSS', 'Responsive Layout', 'Theme Sections (Shopify)'],
-      image: '/SwashPeak.webp',
-      liveUrl: 'https://swashpeak.com/',
-      category: 'client',
-      bullets: [
-        'Improved navigation + category structure so users can find products faster',
-        'Made the storefront fully responsive across mobile/tablet/desktop',
-        'Added modern sections + UI polish for a cleaner brand presentation'
-      ]
+  // Seed with static fallback so UI renders immediately; replaced by DB data when available
+  const [projects, setProjects] = useState<Project[]>(
+    fallbackProjects.filter(p => p.status === 'published')
+  )
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('status', 'published')
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: false })
+
+        if (error) {
+          console.warn('[ProjectsSection] Supabase query error — using fallback:', error.message)
+          return
+        }
+
+        if (!data || data.length === 0) {
+          console.warn('[ProjectsSection] No rows returned — using fallback')
+          return
+        }
+
+        const mapped: Project[] = data.map((row, i) => {
+          // Validate required UI fields before accepting the row
+          if (!row.id || !row.title || !row.category) {
+            console.warn(`[ProjectsSection] Row ${i} missing required fields (id/title/category) — skipped:`, row)
+            return null
+          }
+          const image = row.image_url ?? row.image ?? ''
+          if (!image) {
+            console.warn(`[ProjectsSection] Row ${i} missing image — skipped:`, row)
+            return null
+          }
+          return {
+            id: row.id,
+            title: row.title,
+            description: row.full_description ?? row.short_description ?? '',
+            summary: row.short_description ?? '',
+            tech: Array.isArray(row.tech_stack) ? row.tech_stack : [],
+            image,
+            liveUrl: row.live_url ?? '',
+            sourceUrl: row.github_url ?? undefined,
+            category: row.category,
+            bullets: Array.isArray(row.bullets) ? row.bullets : undefined,
+            status: row.status ?? 'published',
+          }
+        }).filter(Boolean) as Project[]
+
+        if (mapped.length === 0) {
+          console.warn('[ProjectsSection] All DB rows failed validation — using fallback')
+          return
+        }
+
+        console.log(`[ProjectsSection] Loaded ${mapped.length} projects from DB`)
+        console.log('[ProjectsSection] First mapped project:', mapped[0])
+
+        // Set both together so active never resolves to null between renders
+        const firstFrontend = mapped.find(p => p.category === 'frontend') ?? mapped[0]
+        setProjects(mapped)
+        setActiveId(firstFrontend.id)
+      } catch (err) {
+        console.warn('[ProjectsSection] Supabase fetch failed — using fallback:', err)
+      }
     }
-  ], [])
+
+    fetchProjects()
+  }, [])
 
   const [activeTab, setActiveTab] = useState<'frontend' | 'client'>('frontend')
-  const [activeId, setActiveId] = useState(projects.find(p => p.category === 'frontend')?.id || 1)
+  const [activeId, setActiveId] = useState<string | number>(
+    projects.find(p => p.category === 'frontend')?.id || 1
+  )
   const [showWorkSummary, setShowWorkSummary] = useState(false)
   const [scrollState, setScrollState] = useState({
     isAtTop: true,
@@ -218,10 +218,11 @@ const ProjectsSection = () => {
     [projects, activeTab]
   )
   
-  const active = useMemo(() => 
-    filteredProjects.find(p => p.id === activeId) || filteredProjects[0], 
-    [filteredProjects, activeId]
-  )
+  const active = useMemo(() => {
+    const found = filteredProjects.find(p => p.id === activeId) ?? filteredProjects[0] ?? null
+    console.log('[ProjectsSection] active:', found?.title, 'filtered:', filteredProjects.length, 'projects:', projects.length)
+    return found
+  }, [filteredProjects, activeId, projects.length])
   
   const mini = useMemo(() => 
     filteredProjects.filter(p => p.id !== activeId), 
@@ -229,7 +230,7 @@ const ProjectsSection = () => {
   )
 
   // Memoize click handler to prevent recreation
-  const handleMiniClick = useCallback((id: number) => {
+  const handleMiniClick = useCallback((id: string | number) => {
     if (!isMounted) return
     setActiveId(id)
   }, [isMounted])
@@ -370,6 +371,8 @@ const ProjectsSection = () => {
                   }}
                   className="min-h-0 lg:min-h-[600px]" // Stable height to prevent layout jump
                 >
+                {active ? (
+                <>
                 {activeTab === 'client' && filteredProjects.length === 1 ? (
                   /* Client Work: Premium Top Media + Bottom Content Card */
                   <div className="max-w-4xl mx-auto">
@@ -836,6 +839,8 @@ const ProjectsSection = () => {
                     </div>
                   </div>
                 )}
+                </>
+                ) : null}
               </motion.div>
             </AnimatePresence>
             </motion.div>
@@ -844,7 +849,7 @@ const ProjectsSection = () => {
       </section>
 
       {/* Work Summary Modal - ✅ Dynamically loaded only when needed */}
-      {showWorkSummary && active.category === 'client' && (
+      {showWorkSummary && active?.category === 'client' && (
         <WorkSummaryModal 
           active={active} 
           onClose={() => setShowWorkSummary(false)} 
