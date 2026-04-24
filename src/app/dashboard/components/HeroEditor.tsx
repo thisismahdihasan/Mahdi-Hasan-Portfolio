@@ -6,7 +6,22 @@ import { supabase } from '@/lib/supabase'
 import Toast from './Toast'
 import type { HeroContent } from '@/types/hero'
 
-const MAX_PDF_BYTES = 5 * 1024 * 1024 // 5 MB
+const MAX_PDF_BYTES  = 5 * 1024 * 1024 // 5 MB
+const MAX_IMG_BYTES  = 8 * 1024 * 1024 // 8 MB
+
+const ALLOWED_IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const ALLOWED_IMG_EXTS  = ['.jpg', '.jpeg', '.png', '.webp']
+
+// Derive the fixed storage filename from the uploaded file's extension
+const profilePhotoPath = (file: File): string => {
+  const lower = file.name.toLowerCase()
+  if (lower.endsWith('.png'))              return 'profile-photo.png'
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'profile-photo.jpg'
+  return 'profile-photo.webp' // default for .webp and anything else accepted
+}
+
+// All known fixed filenames — used to clean up the old variant before uploading
+const PROFILE_PHOTO_VARIANTS = ['profile-photo.webp', 'profile-photo.jpg', 'profile-photo.png']
 
 // ── Query key ────────────────────────────────────────────────────────────────
 const HERO_KEY = ['dashboard-hero-content'] as const
@@ -19,6 +34,7 @@ const EMPTY: Omit<HeroContent, 'id' | 'updated_at'> = {
   primary_cta_label:   '',
   primary_cta_url:     '',
   secondary_cta_label: '',
+  profile_image_url:   '',
 }
 
 // ── Fetch from Supabase (JS client, auth-aware) ──────────────────────────────
@@ -61,6 +77,8 @@ export default function HeroEditor() {
   const [toast, setToast]   = useState<ToastState>(null)
   const [upload, setUpload] = useState<UploadState>({ status: 'idle' })
   const pdfInputRef = useRef<HTMLInputElement>(null)
+  const [imgUpload, setImgUpload] = useState<UploadState>({ status: 'idle' })
+  const imgInputRef = useRef<HTMLInputElement>(null)
 
   // Populate form once DB row loads
   useEffect(() => {
@@ -72,6 +90,7 @@ export default function HeroEditor() {
         primary_cta_label:   dbRow.primary_cta_label   ?? '',
         primary_cta_url:     dbRow.primary_cta_url     ?? '',
         secondary_cta_label: dbRow.secondary_cta_label ?? '',
+        profile_image_url:   dbRow.profile_image_url   ?? '',
       })
       setDirty(false)
     }
@@ -119,9 +138,11 @@ export default function HeroEditor() {
       primary_cta_label:   dbRow.primary_cta_label   ?? '',
       primary_cta_url:     dbRow.primary_cta_url     ?? '',
       secondary_cta_label: dbRow.secondary_cta_label ?? '',
+      profile_image_url:   dbRow.profile_image_url   ?? '',
     })
     setDirty(false)
     setUpload({ status: 'idle' })
+    setImgUpload({ status: 'idle' })
   }
 
   // ── PDF upload ────────────────────────────────────────────────────────────
@@ -162,6 +183,51 @@ export default function HeroEditor() {
     const { data } = supabase.storage.from('resumes').getPublicUrl(FIXED_PATH)
     set('primary_cta_url', `${data.publicUrl}?v=${Date.now()}`)
     setUpload({ status: 'done', filename: file.name })
+  }
+
+  // ── Profile photo upload ──────────────────────────────────────────────────
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (imgInputRef.current) imgInputRef.current.value = ''
+    if (!file) return
+
+    // Validate type
+    const isAllowed =
+      ALLOWED_IMG_TYPES.includes(file.type) ||
+      ALLOWED_IMG_EXTS.some(ext => file.name.toLowerCase().endsWith(ext))
+    if (!isAllowed) {
+      setImgUpload({ status: 'error', message: 'Only JPG, PNG, or WebP images are accepted.' })
+      return
+    }
+    // Validate size
+    if (file.size > MAX_IMG_BYTES) {
+      setImgUpload({
+        status: 'error',
+        message: `File too large — maximum is 8 MB (this file is ${(file.size / 1024 / 1024).toFixed(1)} MB).`,
+      })
+      return
+    }
+
+    setImgUpload({ status: 'uploading' })
+
+    const newPath = profilePhotoPath(file)
+
+    // Remove all other known variants first so only one file exists in the bucket
+    const toRemove = PROFILE_PHOTO_VARIANTS.filter(v => v !== newPath)
+    await supabase.storage.from('hero-images').remove(toRemove)
+
+    const { error: uploadError } = await supabase.storage
+      .from('hero-images')
+      .upload(newPath, file, { upsert: true, contentType: file.type })
+
+    if (uploadError) {
+      setImgUpload({ status: 'error', message: uploadError.message })
+      return
+    }
+
+    const { data } = supabase.storage.from('hero-images').getPublicUrl(newPath)
+    set('profile_image_url', `${data.publicUrl}?v=${Date.now()}`)
+    setImgUpload({ status: 'done', filename: file.name })
   }
 
   // ── Loading state ─────────────────────────────────────────────────────────
@@ -278,9 +344,92 @@ export default function HeroEditor() {
               </div>
             </div>
 
-            {/* CTA card */}
+            {/* Profile Photo card */}
             <div className="rounded-2xl border border-white/[0.07] bg-[#141414] p-7">
               <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-white/30 mb-5">
+                Profile Photo
+              </p>
+
+              <div className="space-y-4">
+                {/* Current image preview */}
+                <div className="flex items-start gap-4">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden border border-white/[0.10] bg-white/[0.04] flex-shrink-0 relative">
+                    {form.profile_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={form.profile_image_url}
+                        alt="Profile preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1">
+                        <span className="material-symbols-outlined text-white/20 text-[22px]">person</span>
+                        <span className="text-[9px] text-white/20 text-center leading-tight px-1">Local<br/>fallback</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <p className="text-xs text-white/50 leading-relaxed">
+                        {form.profile_image_url
+                          ? 'Current photo from database.'
+                          : 'No photo uploaded — public site uses the local fallback image.'}
+                      </p>
+                    </div>
+
+                    {/* Upload button */}
+                    <label className={`inline-flex items-center gap-1.5 cursor-pointer text-xs px-3 py-1.5 rounded-lg border transition-colors select-none
+                      ${imgUpload.status === 'uploading'
+                        ? 'border-white/[0.08] text-white/25 cursor-not-allowed bg-white/[0.02]'
+                        : 'border-white/[0.12] text-white/50 hover:text-white hover:border-[#D4AF37]/40 bg-white/[0.04] hover:bg-[#D4AF37]/[0.06]'
+                      }`}
+                    >
+                      {imgUpload.status === 'uploading' ? (
+                        <>
+                          <span className="w-3 h-3 border border-white/20 border-t-white/50 rounded-full animate-spin" />
+                          Uploading…
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-[14px]">add_photo_alternate</span>
+                          {form.profile_image_url ? 'Replace Photo' : 'Upload Photo'}
+                        </>
+                      )}
+                      <input
+                        ref={imgInputRef}
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                        disabled={imgUpload.status === 'uploading'}
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {/* Status feedback */}
+                    {imgUpload.status === 'done' && (
+                      <span className="flex items-center gap-1 text-xs text-green-400/80">
+                        <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                        {imgUpload.filename} uploaded — save to apply
+                      </span>
+                    )}
+                    {imgUpload.status === 'error' && (
+                      <span className="flex items-center gap-1 text-xs text-red-400/80">
+                        <span className="material-symbols-outlined text-[13px]">error</span>
+                        {imgUpload.message}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-white/20 leading-relaxed">
+                  Accepted: JPG, PNG, WebP · Max 8 MB. Upload replaces the previous photo automatically.
+                </p>
+              </div>
+            </div>
+
+            {/* CTA card */}
+            <div className="rounded-2xl border border-white/[0.07] bg-[#141414] p-7">              <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-white/30 mb-5">
                 Call to Action
               </p>
 

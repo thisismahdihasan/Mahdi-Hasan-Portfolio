@@ -6,5 +6,6 @@ export interface HeroContent {
   primary_cta_label: string
   primary_cta_url: string
   secondary_cta_label: string
+  profile_image_url?: string
   updated_at?: string
 }

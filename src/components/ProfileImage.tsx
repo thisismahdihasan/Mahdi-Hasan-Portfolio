@@ -9,9 +9,10 @@ import { useMobile } from '@/hooks/useMediaQueries'
 
 interface ProfileImageProps {
   entryRevealReady?: boolean
+  profileImageUrl?: string
 }
 
-const ProfileImage = ({ entryRevealReady = true }: ProfileImageProps) => {
+const ProfileImage = ({ entryRevealReady = true, profileImageUrl }: ProfileImageProps) => {
   // Use shared mobile detection hook for better performance
   const isMobile = useMobile()
 
@@ -60,7 +61,7 @@ const ProfileImage = ({ entryRevealReady = true }: ProfileImageProps) => {
         <Image
           alt="Professional portrait of Mahdi Hasan"
           className="w-full h-full object-contain lg:object-cover grayscale group-hover:grayscale-0 transition-all duration-300 ease-out"
-          src="/formal_Img_org.webp"
+          src={profileImageUrl || '/formal_Img_org.webp'}
           fill
           priority
           sizes="(max-width: 1024px) 100vw, 45vw"

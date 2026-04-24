@@ -89,7 +89,7 @@ export default function PortfolioClient({ initialProjects, initialSkillCategorie
                 <Hero key={`hero-${revealKey}`} entryRevealReady={entryRevealReady} heroContent={initialHeroContent} />
               </div>
               <div className="w-full md:w-[45%] lg:w-[45%] relative z-[100] profile-image-container lg:min-h-screen">
-                <ProfileImage key={`image-${revealKey}`} entryRevealReady={entryRevealReady} />
+                <ProfileImage key={`image-${revealKey}`} entryRevealReady={entryRevealReady} profileImageUrl={initialHeroContent?.profile_image_url} />
               </div>
             </section>
 

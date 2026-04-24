@@ -55,6 +55,7 @@ async function getHeroContent(): Promise<HeroContent> {
       primary_cta_label: row.primary_cta_label || HERO_FALLBACK.primary_cta_label,
       primary_cta_url: row.primary_cta_url || HERO_FALLBACK.primary_cta_url,
       secondary_cta_label: row.secondary_cta_label || HERO_FALLBACK.secondary_cta_label,
+      profile_image_url: row.profile_image_url || undefined,
       updated_at: row.updated_at,
     }
   } catch {
