@@ -5,12 +5,13 @@ import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 import DashboardLayout from './components/DashboardLayout'
 import OverviewSection from './components/OverviewSection'
+import HeroEditor from './components/HeroEditor'
 import ProjectsManager from './components/ProjectsManager'
 import SkillsManager from './components/SkillsManager'
 import AnalyticsSection from './components/AnalyticsSection'
 import SettingsSection from './components/SettingsSection'
 
-type Section = 'overview' | 'projects' | 'skills' | 'analytics' | 'settings'
+type Section = 'overview' | 'home' | 'projects' | 'skills' | 'analytics' | 'settings'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -114,6 +115,8 @@ export default function DashboardPage() {
             onNavigate={s => setSection(s)}
           />
         )
+      case 'home':
+        return <HeroEditor />
       case 'projects':
         return <ProjectsManager />
       case 'skills':
