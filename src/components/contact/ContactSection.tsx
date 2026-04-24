@@ -5,8 +5,6 @@ import { motion } from 'framer-motion'
 import type { Variants } from 'framer-motion'
 import { Mail, MapPin, Phone } from 'lucide-react'
 import { EASE_OUT_QUART } from '@/lib/animations'
-import { EMAILJS_CONFIG, EMAIL_TEMPLATE_VARS } from '@/lib/emailjs-config'
-import emailjs from '@emailjs/browser'
 import toast from 'react-hot-toast'
 import { useMobile } from '@/hooks/useMediaQueries'
 
@@ -42,11 +40,6 @@ const ContactSection = () => {
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
-
-  // Initialize EmailJS
-  useEffect(() => {
-    emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY)
-  }, [])
 
   // ✅ Memoize animation variants - mobile-optimized
   const containerVariants: Variants = useMemo(() => ({
@@ -152,15 +145,12 @@ const ContactSection = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateForm() || !isMounted) return
 
     setIsSubmitting(true)
     setSubmitStatus('idle')
 
-    // ── Step 1: call /api/contact and await the result ────────────────────
-    // This must complete before EmailJS so a 429 can block the email send.
-    let apiRateLimited = false
     try {
       const apiRes = await fetch('/api/contact', {
         method: 'POST',
@@ -174,21 +164,10 @@ const ContactSection = () => {
           source_page: typeof window !== 'undefined' ? window.location.pathname : '/',
         }),
       })
-      if (apiRes.status === 429) {
-        apiRateLimited = true
-      } else if (!apiRes.ok) {
-        console.error('[ContactSection] /api/contact failed:', apiRes.status)
-      } else {
-        console.log('[ContactSection] /api/contact saved successfully')
-      }
-    } catch (err) {
-      // Network error — log but don't block EmailJS (server may be temporarily down)
-      console.error('[ContactSection] /api/contact network error:', err)
-    }
 
-    // ── Step 2: if rate-limited, stop here — do not call EmailJS ─────────
-    if (apiRateLimited) {
-      if (isMounted) {
+      if (!isMounted) return
+
+      if (apiRes.status === 429) {
         toast.error('Too many messages. Please try again later.', {
           duration: 6000,
           style: {
@@ -198,37 +177,16 @@ const ContactSection = () => {
           },
         })
         setSubmitStatus('error')
-        setIsSubmitting(false)
-        setTimeout(() => {
-          if (!isMounted) return
-          setSubmitStatus('idle')
-        }, 5000)
+        setTimeout(() => { if (isMounted) setSubmitStatus('idle') }, 5000)
+        return
       }
-      return
-    }
 
-    // ── Step 3: proceed with EmailJS ──────────────────────────────────────
-    try {
-      const result = await emailjs.send(
-        EMAILJS_CONFIG.SERVICE_ID,
-        EMAILJS_CONFIG.TEMPLATE_ID,
-        {
-          [EMAIL_TEMPLATE_VARS.NAME]: formData.name,
-          [EMAIL_TEMPLATE_VARS.EMAIL]: formData.email,
-          [EMAIL_TEMPLATE_VARS.PHONE]: formData.phone || 'Not provided',
-          [EMAIL_TEMPLATE_VARS.MESSAGE]: formData.message,
-          [EMAIL_TEMPLATE_VARS.FROM_NAME]: formData.name,
-          [EMAIL_TEMPLATE_VARS.FROM_EMAIL]: formData.email,
-          [EMAIL_TEMPLATE_VARS.TO_NAME]: 'Mahdi Hasan',
-        },
-        EMAILJS_CONFIG.PUBLIC_KEY
-      )
+      if (!apiRes.ok) {
+        throw new Error(`Server error: ${apiRes.status}`)
+      }
 
-      console.log('Email sent successfully:', result)
-
-      if (!isMounted) return
-
-      toast.success('Message sent successfully! I\'ll get back to you soon.', {
+      // ── Success ──────────────────────────────────────────────────────────
+      toast.success("Message sent successfully! I'll get back to you soon.", {
         duration: 5000,
         style: {
           background: 'rgba(34, 197, 94, 0.1)',
@@ -246,15 +204,11 @@ const ContactSection = () => {
       }, 3000)
 
     } catch (error) {
-      console.error('Email send failed:', error)
+      console.error('[ContactSection] Submit failed:', error)
 
       if (!isMounted) return
 
-      const errorMessage = error instanceof Error
-        ? `Failed to send message: ${error.message}`
-        : 'Failed to send message. Please try again or contact me directly.'
-
-      toast.error(errorMessage, {
+      toast.error('Failed to send message. Please try again or contact me directly.', {
         duration: 6000,
         style: {
           background: 'rgba(239, 68, 68, 0.1)',
@@ -265,14 +219,10 @@ const ContactSection = () => {
 
       setSubmitStatus('error')
 
-      setTimeout(() => {
-        if (!isMounted) return
-        setSubmitStatus('idle')
-      }, 5000)
+      setTimeout(() => { if (isMounted) setSubmitStatus('idle') }, 5000)
+
     } finally {
-      if (isMounted) {
-        setIsSubmitting(false)
-      }
+      if (isMounted) setIsSubmitting(false)
     }
   }
 
