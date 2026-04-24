@@ -18,7 +18,7 @@ const WorkSummaryModal = dynamic(() => import('./WorkSummaryModal'), {
   loading: () => null // No loading component needed
 })
 
-const ProjectsSection = () => {
+const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) => {
   // Use shared media query hooks for better performance
   const { isMobile, prefersReducedMotion } = useMediaPreferences()
   const [isMounted, setIsMounted] = useState(false) // Track component mount status
@@ -28,9 +28,11 @@ const ProjectsSection = () => {
     return () => setIsMounted(false)
   }, [])
 
-  // Seed with static fallback so UI renders immediately; replaced by DB data when available
+  // Seed from server-provided initial data if available, otherwise use static fallback
   const [projects, setProjects] = useState<Project[]>(
-    fallbackProjects.filter(p => p.status === 'published')
+    () => (initialProjects && initialProjects.length > 0)
+      ? initialProjects
+      : fallbackProjects.filter(p => p.status === 'published')
   )
 
   useEffect(() => {

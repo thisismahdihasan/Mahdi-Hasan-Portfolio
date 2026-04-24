@@ -1,125 +1,120 @@
-'use client'
+import PortfolioClient from '@/components/PortfolioClient'
+import type { Project } from '@/types/project'
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import PageWrapper from '@/components/PageWrapper'
-import Navbar from '@/components/Navbar'
-import ProfileImage from '@/components/ProfileImage'
-import MouseSpotlight from '@/components/MouseSpotlight'
-import Hero from '@/components/Hero'
-import SkillsSection from '@/components/SkillsSection'
-import ProjectsSection from '@/components/ProjectsSection'
-import AboutSection from '@/components/about/AboutSection'
-import ContactSection from '@/components/contact/ContactSection'
-import Footer from '@/components/Footer'
-import EntryLoader from '@/components/EntryLoader'
-import RefreshLoader from '@/components/RefreshLoader'
-import { useEntryLoader } from '@/hooks/useEntryLoader'
+// Serializable skill data (no React components)
+export interface SerializableSkillCategory {
+  title: string
+  skills: string[]
+}
 
-export default function Home() {
-  const { 
-    showEntryLoader, 
-    showRefreshLoader, 
-    entryLoaderComplete, 
-    handleEntryComplete, 
-    handleRefreshComplete, 
-    skipSmartLoader 
-  } = useEntryLoader()
-  const [entryRevealReady, setEntryRevealReady] = useState(false)
-  const [revealKey, setRevealKey] = useState(0)
+// ── Server-side cached Supabase fetch ────────────────────────────────────────
+// Runs at build time and revalidates every 5 minutes.
+// If it fails, undefined is passed and the client falls back to static data.
 
-  // Initialize entryRevealReady to true if no loader is shown
-  useEffect(() => {
-    const welcomeShown = sessionStorage.getItem('welcomeShown')
-    if (welcomeShown && !showRefreshLoader) {
-      setEntryRevealReady(true)
+async function getInitialProjects(): Promise<Project[] | undefined> {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!url || !key) return undefined
+
+    const res = await fetch(
+      `${url}/rest/v1/projects?status=eq.published&order=sort_order.asc,created_at.desc&select=*`,
+      {
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json',
+        },
+        next: { revalidate: 300 }, // ISR: revalidate every 5 minutes
+      }
+    )
+
+    if (!res.ok) return undefined
+    const data: any[] = await res.json()
+    if (!Array.isArray(data) || data.length === 0) return undefined
+
+    const mapped: Project[] = data
+      .map((row) => {
+        if (!row.id || !row.title || !row.category) return null
+        const image = row.image_url ?? ''
+        if (!image) return null
+        return {
+          id: row.id,
+          title: row.title,
+          description: row.full_description ?? row.short_description ?? '',
+          summary: row.short_description ?? '',
+          tech: Array.isArray(row.tech_stack) ? row.tech_stack : [],
+          image,
+          liveUrl: row.live_url ?? '',
+          sourceUrl: row.github_url ?? undefined,
+          category: row.category as 'frontend' | 'client',
+          bullets: Array.isArray(row.bullets) ? row.bullets : undefined,
+          status: (row.status ?? 'published') as 'published' | 'draft',
+        }
+      })
+      .filter(Boolean) as Project[]
+
+    return mapped.length > 0 ? mapped : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function getInitialSkillCategories(): Promise<SerializableSkillCategory[] | undefined> {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!url || !key) return undefined
+
+    const headers = {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
     }
-  }, [showRefreshLoader])
 
-  const handleLoaderComplete = () => {
-    handleEntryComplete()
-    // Trigger reveal sequence after loader completes
-    setEntryRevealReady(true)
-    setRevealKey(prev => prev + 1)
-  }
+    const [catRes, skillRes] = await Promise.all([
+      fetch(
+        `${url}/rest/v1/skill_categories?order=sort_order.asc,created_at.asc&select=id,title`,
+        { headers, next: { revalidate: 300 } }
+      ),
+      fetch(
+        `${url}/rest/v1/skills?order=sort_order.asc,created_at.asc&select=name,category_id`,
+        { headers, next: { revalidate: 300 } }
+      ),
+    ])
 
-  const handleRefreshLoaderComplete = () => {
-    handleRefreshComplete()
-    // Trigger reveal sequence after refresh loader completes
-    setEntryRevealReady(true)
-    setRevealKey(prev => prev + 1)
+    if (!catRes.ok || !skillRes.ok) return undefined
+
+    const catData: { id: string; title: string }[] = await catRes.json()
+    const skillData: { name: string; category_id: string }[] = await skillRes.json()
+
+    if (!Array.isArray(catData) || catData.length === 0) return undefined
+
+    const mapped: SerializableSkillCategory[] = catData.map((cat) => ({
+      title: cat.title,
+      skills: skillData
+        .filter((s) => s.category_id === cat.id)
+        .map((s) => s.name),
+    }))
+
+    return mapped.length > 0 ? mapped : undefined
+  } catch {
+    return undefined
   }
+}
+
+// ── Server component page ────────────────────────────────────────────────────
+export default async function Home() {
+  // Fetch in parallel — failures return undefined, client handles fallback
+  const [initialProjects, initialSkillCategories] = await Promise.all([
+    getInitialProjects(),
+    getInitialSkillCategories(),
+  ])
 
   return (
-    <>
-      {/* Entry Welcome Loader - First Visit Only */}
-      <AnimatePresence mode="wait">
-        {showEntryLoader && (
-          <EntryLoader onComplete={handleLoaderComplete} />
-        )}
-      </AnimatePresence>
-
-      {/* Refresh Loader - Page Refresh Only */}
-      <AnimatePresence mode="wait">
-        {showRefreshLoader && (
-          <RefreshLoader onComplete={handleRefreshLoaderComplete} />
-        )}
-      </AnimatePresence>
-
-      {/* PageWrapper with entry loader state - prevents SmartLoader overlap */}
-      <PageWrapper entryLoaderComplete={entryLoaderComplete} skipSmartLoader={skipSmartLoader}>
-        {/* Main Content with curtain reveal entrance */}
-        <motion.div
-          initial={{ opacity: 0.6 }}
-          animate={{ opacity: 1 }}
-          transition={{ 
-            duration: 0.55, 
-            ease: "easeOut",
-            delay: showEntryLoader || showRefreshLoader ? 0 : 0 // No delay if no loader
-          }}
-        >
-          <main className="text-neutral-800 dark:text-neutral-200 min-h-screen relative" style={{ touchAction: 'pan-y' }}>
-            <MouseSpotlight />
-            
-            {/* Fixed Navbar with reveal key */}
-            <Navbar key={`navbar-${revealKey}`} entryRevealReady={entryRevealReady} />
-            
-            {/* Hero Section */}
-            <section id="hero" className="scroll-mt-24 flex flex-col md:flex-row md:gap-10 md:items-center lg:flex-row lg:gap-0 lg:items-stretch lg:min-h-screen relative z-10 pt-[28px] md:pt-16 mb-12 sm:mb-16 md:mb-28">
-              <div className="w-full md:w-[55%] lg:w-[55%] bg-black/20 lg:border-r lg:border-neutral-200/20 dark:lg:border-neutral-800/80 p-6 sm:p-8 md:p-12 relative z-20">
-                {/* Force Hero re-mount with key to ensure animation always plays */}
-                <Hero 
-                  key={`hero-${revealKey}`}
-                  entryRevealReady={entryRevealReady}
-                />
-              </div>
-              
-              {/* Profile Image - Right side of split layout with proper width */}
-              <div className="w-full md:w-[45%] lg:w-[45%] relative z-[100] profile-image-container lg:min-h-screen">
-                <ProfileImage 
-                  key={`image-${revealKey}`}
-                  entryRevealReady={entryRevealReady}
-                />
-              </div>
-            </section>
-
-          {/* Skills Section */}
-          <SkillsSection />
-
-          {/* Projects Section */}
-          <ProjectsSection />
-
-          {/* About Section */}
-          <AboutSection />
-
-          {/* Contact Section */}
-          <ContactSection />
-
-          {/* Footer */}
-          <Footer />
-        </main>
-        </motion.div>
-      </PageWrapper>
-    </>
+    <PortfolioClient
+      initialProjects={initialProjects}
+      initialSkillCategories={initialSkillCategories}
+    />
   )
 }

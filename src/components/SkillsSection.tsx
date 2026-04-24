@@ -9,12 +9,37 @@ import { orbitalIcons, skillCategories as fallbackCategories } from '@/data/skil
 import type { OrbitalIcon, SkillCategory } from '@/data/skills'
 import { supabase } from '@/lib/supabase'
 
-const SkillsSection = () => {
+// Serializable shape that crosses the server→client boundary (no React components)
+interface SerializableSkillCategory {
+  title: string
+  skills: string[]
+}
+
+// Merge server-provided serializable categories with static fallback to restore
+// UI-only fields (icon, relatedOrbIcons) that cannot be serialized server-side.
+function mergeWithFallback(serverCats: SerializableSkillCategory[]): SkillCategory[] {
+  return serverCats.map((cat) => {
+    const fallback = fallbackCategories.find((f) => f.title === cat.title)
+    return {
+      title: cat.title,
+      skills: cat.skills.length > 0 ? cat.skills : (fallback?.skills ?? []),
+      icon: fallback?.icon ?? fallbackCategories[0]?.icon,
+      relatedOrbIcons: fallback?.relatedOrbIcons ?? [],
+    }
+  })
+}
+
+const SkillsSection = ({ initialSkillCategories }: { initialSkillCategories?: SerializableSkillCategory[] }) => {
   // Use shared media query hooks for better performance
   const { isMobile, prefersReducedMotion } = useMediaPreferences()
 
-  // Seeded with static fallback; replaced by DB data when available
-  const [skillCategories, setSkillCategories] = useState<SkillCategory[]>(fallbackCategories)
+  // Seed from server-provided initial data (merged with static fallback for icons),
+  // otherwise use static fallback directly.
+  const [skillCategories, setSkillCategories] = useState<SkillCategory[]>(
+    () => (initialSkillCategories && initialSkillCategories.length > 0)
+      ? mergeWithFallback(initialSkillCategories)
+      : fallbackCategories
+  )
 
   useEffect(() => {
     const fetchSkills = async () => {
