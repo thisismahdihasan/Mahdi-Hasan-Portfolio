@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    optimizePackageImports: ['gsap', 'framer-motion'],
+    optimizePackageImports: ['framer-motion'],
   },
   images: {
     formats: ['image/webp', 'image/avif'],

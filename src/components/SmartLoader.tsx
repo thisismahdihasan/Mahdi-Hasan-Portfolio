@@ -19,11 +19,11 @@ const SmartLoader = ({ onComplete }: SmartLoaderProps) => {
     
     if (hasVisited) {
       setIsFirstVisit(false)
-      // Quick MH logo for returning visitors
+      // Quick MH logo for returning visitors - optimized to 700ms total
       const timer = setTimeout(() => {
         setIsComplete(true)
-        setTimeout(onComplete, 800)
-      }, 2500)
+        setTimeout(onComplete, 200)
+      }, 500)
       return () => clearTimeout(timer)
     } else {
       // Mark as visited for this session

@@ -1,15 +1,24 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useMotionValue, useTransform } from 'framer-motion'
 import { createPortal } from 'react-dom'
 
 const CustomCursor = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [isVisible, setIsVisible] = useState(false)
   const [isHoveringText, setIsHoveringText] = useState(false)
   const [isMagnetic, setIsMagnetic] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+
+  // Framer Motion motion values for rendering without React state updates
+  const cursorX = useMotionValue(-100)
+  const cursorY = useMotionValue(-100)
+
+  // Derived motion values for offsets
+  const dotX = useTransform(cursorX, (val) => val - 4)
+  const dotY = useTransform(cursorY, (val) => val - 4)
+  const lensX = useTransform(cursorX, (val) => val - 24)
+  const lensY = useTransform(cursorY, (val) => val - 24)
 
   useEffect(() => {
     setIsMounted(true)
@@ -36,20 +45,18 @@ const CustomCursor = () => {
     document.body.classList.add('custom-cursor-active')
 
     const handleMouseMove = (e: MouseEvent) => {
-      const mouseX = e.clientX
-      const mouseY = e.clientY
-      
-      setMousePosition({ x: mouseX, y: mouseY })
+      cursorX.set(e.clientX)
+      cursorY.set(e.clientY)
+    }
 
-      // Reliable target detection using elementFromPoint
-      const elementUnderMouse = document.elementFromPoint(mouseX, mouseY)
-      if (elementUnderMouse) {
-        // Check if element or closest parent is a text target
-        const textTarget = elementUnderMouse.closest('[data-lens="on"], h1, h2, h3, h4, h5, h6, p, a, button, li, span')
-        setIsHoveringText(!!textTarget)
-      } else {
-        setIsHoveringText(false)
-      }
+    // Document-level event delegation for text hover state detection
+    // This replaces document.elementFromPoint and prevents layout reflows (thrashing)
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target) return
+      
+      const textTarget = target.closest('[data-lens="on"], h1, h2, h3, h4, h5, h6, p, a, button, li, span')
+      setIsHoveringText(!!textTarget)
     }
 
     // Magnetic effect for interactive elements
@@ -60,7 +67,8 @@ const CustomCursor = () => {
       const centerY = rect.top + rect.height / 2
 
       setIsMagnetic(true)
-      setMousePosition({ x: centerX, y: centerY })
+      cursorX.set(centerX)
+      cursorY.set(centerY)
     }
 
     const handleMagneticLeave = () => {
@@ -69,6 +77,7 @@ const CustomCursor = () => {
 
     // Add event listeners
     document.addEventListener('mousemove', handleMouseMove, { passive: true })
+    document.addEventListener('mouseover', handleMouseOver, { passive: true })
 
     // Magnetic elements
     const magneticElements = document.querySelectorAll('[data-magnetic]')
@@ -83,13 +92,14 @@ const CustomCursor = () => {
       document.body.classList.remove('custom-cursor-active')
       
       document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseover', handleMouseOver)
       
       magneticElements.forEach(el => {
         el.removeEventListener('mouseenter', handleMagneticHover as EventListener)
         el.removeEventListener('mouseleave', handleMagneticLeave as EventListener)
       })
     }
-  }, [])
+  }, [cursorX, cursorY])
 
   if (!isVisible || !isMounted) return null
 
@@ -110,14 +120,8 @@ const CustomCursor = () => {
             : '0 0 3px rgba(255, 255, 255, 0.2), inset 0 0 2px rgba(255, 255, 255, 0.5)',
           // Very subtle border for definition
           border: '0.25px solid rgba(255, 255, 255, 0.15)',
-        }}
-        animate={{
-          x: mousePosition.x - 4,
-          y: mousePosition.y - 4,
-        }}
-        transition={{
-          x: { type: "tween", ease: "easeOut", duration: 0.1 },
-          y: { type: "tween", ease: "easeOut", duration: 0.1 },
+          x: dotX,
+          y: dotY,
         }}
       />
       
@@ -132,15 +136,13 @@ const CustomCursor = () => {
           backdropFilter: 'contrast(1.4) brightness(1.2) saturate(1.3)',
           WebkitBackdropFilter: 'contrast(1.4) brightness(1.2) saturate(1.3)',
           boxShadow: '0 0 18px rgb(207 174 82 / 0.18)',
+          x: lensX,
+          y: lensY,
         }}
         animate={{
-          x: mousePosition.x - 24,
-          y: mousePosition.y - 24,
           scale: isHoveringText ? 1.6 : isMagnetic ? 1.3 : 1.0,
         }}
         transition={{
-          x: { type: "tween", ease: "easeOut", duration: 0.1 },
-          y: { type: "tween", ease: "easeOut", duration: 0.1 },
           scale: { duration: 0.7, ease: "easeOut" },
         }}
       />

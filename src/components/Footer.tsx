@@ -153,7 +153,7 @@ const Footer = () => {
             <a 
               href="https://www.linkedin.com/in/mahdi9162/" 
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="text-xs uppercase tracking-widest text-white/60 hover:text-primary hover:underline underline-offset-4 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
               data-lens="on"
             >
@@ -162,7 +162,7 @@ const Footer = () => {
             <a 
               href="https://github.com/mahdi9162" 
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="text-xs uppercase tracking-widest text-white/60 hover:text-primary hover:underline underline-offset-4 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
               data-lens="on"
             >
@@ -171,11 +171,11 @@ const Footer = () => {
             <a 
               href="https://www.facebook.com/mahdi916/" 
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="text-xs uppercase tracking-widest text-white/60 hover:text-primary hover:underline underline-offset-4 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm"
               data-lens="on"
             >
-              Facbook
+              Facebook
             </a>
           </div>
         </div>

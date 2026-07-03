@@ -13,6 +13,7 @@ interface FormData {
   email: string
   phone: string
   message: string
+  honeypot: string
 }
 
 interface FormErrors {
@@ -35,7 +36,8 @@ const ContactSection = () => {
     name: '',
     email: '',
     phone: '',
-    message: ''
+    message: '',
+    honeypot: ''
   })
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -160,7 +162,7 @@ const ContactSection = () => {
           email: formData.email,
           phone: formData.phone || undefined,
           message: formData.message,
-          honeypot: '',
+          honeypot: formData.honeypot,
           source_page: typeof window !== 'undefined' ? window.location.pathname : '/',
         }),
       })
@@ -199,7 +201,7 @@ const ContactSection = () => {
 
       setTimeout(() => {
         if (!isMounted) return
-        setFormData({ name: '', email: '', phone: '', message: '' })
+        setFormData({ name: '', email: '', phone: '', message: '', honeypot: '' })
         setSubmitStatus('idle')
       }, 3000)
 
@@ -423,7 +425,8 @@ const ContactSection = () => {
                       name="honeypot"
                       tabIndex={-1}
                       autoComplete="off"
-                      defaultValue=""
+                      value={formData.honeypot}
+                      onChange={handleInputChange}
                     />
                   </div>
 
