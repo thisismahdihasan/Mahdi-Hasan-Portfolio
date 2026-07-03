@@ -72,7 +72,7 @@ const Footer = () => {
         <div className="flex flex-col md:flex-row justify-between items-end gap-12 mb-12 relative z-10">
           <div className="space-y-6 w-full md:w-auto">
             <div className="w-full overflow-visible">
-              <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-[12rem] font-black text-white leading-none tracking-tighter opacity-10 select-none text-center md:text-left max-w-full">
+              <h2 aria-hidden="true" className="text-5xl sm:text-6xl md:text-7xl lg:text-[12rem] font-black text-white leading-none tracking-tighter opacity-10 select-none text-center md:text-left max-w-full">
                 MAHDI
               </h2>
             </div>

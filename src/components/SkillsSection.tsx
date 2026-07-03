@@ -541,6 +541,7 @@ const TechOrb = memo(function TechOrb({
                   onMouseLeave={() => handleIconHover(null)}
                   whileHover={!isMobile ? { scale: 1.2 } : {}} // Disable hover on mobile
                   whileTap={{ scale: 0.95 }}
+                  aria-label={iconData.name}
                   className="relative group w-full h-full"
                   style={{
                     borderRadius: '9999px',

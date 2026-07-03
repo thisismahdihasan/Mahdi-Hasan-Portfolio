@@ -248,12 +248,12 @@ const ContactSection = () => {
             {/* Premium Headline */}
             <div className="space-y-6">
               <div className="space-y-1">
-                <h1 className="text-2xl md:text-5xl lg:text-6xl leading-none font-semibold tracking-[-0.02em] text-white">
+                <p className="text-2xl md:text-5xl lg:text-6xl leading-none font-semibold tracking-[-0.02em] text-white">
                   Open a
-                </h1>
-                <h1 className="text-4xl md:text-6xl lg:text-7xl leading-none font-semibold tracking-[-0.02em] text-primary/70">
+                </p>
+                <p className="text-4xl md:text-6xl lg:text-7xl leading-none font-semibold tracking-[-0.02em] text-primary/70">
                   Channel
-                </h1>
+                </p>
               </div>
               
               {/* Progress Section */}
@@ -347,10 +347,11 @@ const ContactSection = () => {
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4 md:gap-6 min-w-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 min-w-0">
                     <div className="flex flex-col gap-2">
-                      <label className="text-zinc-200 text-sm font-medium mb-2 block">
+                      <label htmlFor="contact-name" className="text-zinc-200 text-sm font-medium mb-2 block">
                         Name
                       </label>
                       <input
+                        id="contact-name"
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
@@ -361,15 +362,16 @@ const ContactSection = () => {
                         type="text"
                       />
                       {errors.name && (
-                        <p className="text-red-400 text-xs px-1">{errors.name}</p>
+                        <p className="text-red-400 text-xs px-1" role="alert">{errors.name}</p>
                       )}
                     </div>
                     
                     <div className="flex flex-col gap-2">
-                      <label className="text-zinc-200 text-sm font-medium mb-2 block">
+                      <label htmlFor="contact-email" className="text-zinc-200 text-sm font-medium mb-2 block">
                         Email
                       </label>
                       <input
+                        id="contact-email"
                         name="email"
                         value={formData.email}
                         onChange={handleInputChange}
@@ -380,16 +382,17 @@ const ContactSection = () => {
                         type="email"
                       />
                       {errors.email && (
-                        <p className="text-red-400 text-xs px-1">{errors.email}</p>
+                        <p className="text-red-400 text-xs px-1" role="alert">{errors.email}</p>
                       )}
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <label className="text-zinc-200 text-sm font-medium mb-2 block">
+                    <label htmlFor="contact-phone" className="text-zinc-200 text-sm font-medium mb-2 block">
                       Phone (optional)
                     </label>
                     <input
+                      id="contact-phone"
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
@@ -400,10 +403,11 @@ const ContactSection = () => {
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <label className="text-zinc-200 text-sm font-medium mb-2 block">
+                    <label htmlFor="contact-message" className="text-zinc-200 text-sm font-medium mb-2 block">
                       Message
                     </label>
                     <textarea
+                      id="contact-message"
                       name="message"
                       value={formData.message}
                       onChange={handleInputChange}
@@ -414,7 +418,7 @@ const ContactSection = () => {
                       rows={5}
                     />
                     {errors.message && (
-                      <p className="text-red-400 text-xs px-1">{errors.message}</p>
+                      <p className="text-red-400 text-xs px-1" role="alert">{errors.message}</p>
                     )}
                   </div>
 
@@ -433,7 +437,7 @@ const ContactSection = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className={`mt-4 flex h-10 md:h-14 items-center justify-center rounded-xl text-black text-xs md:text-[13px] tracking-[0.24em] uppercase font-bold transition-all shadow-lg group disabled:cursor-not-allowed ${
+                    className={`mt-4 flex h-10 md:h-14 items-center justify-center rounded-xl text-black text-xs md:text-[13px] tracking-[0.24em] uppercase font-bold transition-all shadow-lg group disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                       isSubmitting 
                         ? 'bg-primary/70 scale-[0.98]' 
                         : submitStatus === 'success'
@@ -455,6 +459,7 @@ const ContactSection = () => {
                     </span>
                     {!isSubmitting && submitStatus === 'idle' && (
                       <svg 
+                        aria-hidden="true"
                         className="w-5 h-5 ml-3 transition-transform group-hover:translate-x-1" 
                         fill="none" 
                         stroke="currentColor" 
@@ -465,6 +470,7 @@ const ContactSection = () => {
                     )}
                     {isSubmitting && (
                       <svg 
+                        aria-hidden="true"
                         className="w-4 h-4 ml-3 animate-spin" 
                         fill="none" 
                         viewBox="0 0 24 24"
@@ -475,6 +481,7 @@ const ContactSection = () => {
                     )}
                     {submitStatus === 'success' && (
                       <svg 
+                        aria-hidden="true"
                         className="w-5 h-5 ml-3" 
                         fill="none" 
                         stroke="currentColor" 
@@ -485,6 +492,7 @@ const ContactSection = () => {
                     )}
                     {submitStatus === 'error' && (
                       <svg 
+                        aria-hidden="true"
                         className="w-5 h-5 ml-3" 
                         fill="none" 
                         stroke="currentColor" 

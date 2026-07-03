@@ -287,7 +287,7 @@ const Navbar = ({ entryRevealReady = true }: { entryRevealReady?: boolean }) => 
                   <li key={item.id} className="relative">
                     <button
                       onClick={() => handleNavClick(item.id)}
-                      className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-brand-gold transition-colors duration-300 ease-out py-2 px-1 relative"
+                      className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-brand-gold transition-colors duration-300 ease-out py-2 px-1 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60 rounded-sm"
                       data-lens="on"
                     >
                       {item.label}
@@ -310,9 +310,10 @@ const Navbar = ({ entryRevealReady = true }: { entryRevealReady?: boolean }) => 
 
             {/* Mobile Hamburger Button */}
             <button
-              className="md:hidden p-1 text-neutral-600 dark:text-neutral-400 hover:text-brand-gold transition-colors duration-300 flex items-center justify-center"
+              className="md:hidden p-1 text-neutral-600 dark:text-neutral-400 hover:text-brand-gold transition-colors duration-300 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60 rounded-md"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Open menu"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
               data-lens="on"
               style={{ minWidth: '40px', minHeight: '40px' }}
             >
@@ -373,7 +374,7 @@ const Navbar = ({ entryRevealReady = true }: { entryRevealReady?: boolean }) => 
                           e.stopPropagation()
                           handleNavClick(item.id)
                         }}
-                        className={`block w-full text-left py-4 px-5 rounded-xl transition-all duration-300 touch-manipulation relative overflow-hidden ${
+                        className={`block w-full text-left py-4 px-5 rounded-xl transition-all duration-300 touch-manipulation relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/60 ${
                           activeSection === item.id
                             ? 'bg-gradient-to-r from-brand-gold/10 to-brand-gold/5 text-brand-gold border-l-4 border-brand-gold shadow-[0_0_20px_rgba(207,174,82,0.15)]'
                             : 'text-white/85 hover:text-white hover:bg-white/5 active:bg-white/8 border-l-4 border-transparent'

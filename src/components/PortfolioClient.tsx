@@ -80,7 +80,7 @@ export default function PortfolioClient({ initialProjects, initialSkillCategorie
           animate={{ opacity: 1 }}
           transition={{ duration: 0.55, ease: 'easeOut' }}
         >
-          <main className="text-neutral-800 dark:text-neutral-200 min-h-screen relative" style={{ touchAction: 'pan-y' }}>
+          <main id="main-content" className="text-neutral-800 dark:text-neutral-200 min-h-screen relative" style={{ touchAction: 'pan-y' }}>
             <MouseSpotlight />
 
             <Navbar key={`navbar-${revealKey}`} entryRevealReady={entryRevealReady} />
