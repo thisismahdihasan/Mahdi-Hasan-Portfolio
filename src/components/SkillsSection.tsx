@@ -366,7 +366,7 @@ const SkillsSection = ({ initialSkillCategories }: { initialSkillCategories?: Se
 
                 {/* Dots Indicator - Mobile + Tablet (hidden on desktop) */}
                 <div className="flex justify-center gap-2 mt-4 sm:mt-5 md:mt-6 lg:hidden">
-                  {skillCategories.map((_, index) => (
+                  {skillCategories.map((category, index) => (
                     <button
                       key={index}
                       onClick={() => {
@@ -377,7 +377,8 @@ const SkillsSection = ({ initialSkillCategories }: { initialSkillCategories?: Se
                           ? 'bg-brand-gold w-6'
                           : 'bg-white/20 hover:bg-white/40'
                       }`}
-                      aria-label={`Go to card ${index + 1}`}
+                      aria-label={`View ${category.title}`}
+                      aria-pressed={index === activeCardIndex}
                     />
                   ))}
                 </div>

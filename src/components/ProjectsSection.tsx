@@ -333,8 +333,14 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
             <motion.div 
               className="flex gap-1 md:gap-1 p-1 bg-white/[0.04] rounded-xl border border-white/[0.08] w-fit"
               variants={childVariants}
+              role="tablist"
+              aria-label="Project categories"
             >
               <button
+                role="tab"
+                id="tab-frontend"
+                aria-selected={activeTab === 'frontend'}
+                aria-controls="tabpanel-projects"
                 onClick={() => setActiveTab('frontend')}
                 className={`py-2 px-4 md:py-3 md:px-6 rounded-lg font-medium text-sm transition-all duration-300 ${
                   activeTab === 'frontend'
@@ -345,6 +351,10 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
                 Projects
               </button>
               <button
+                role="tab"
+                id="tab-client"
+                aria-selected={activeTab === 'client'}
+                aria-controls="tabpanel-projects"
                 onClick={() => setActiveTab('client')}
                 className={`py-2 px-4 md:py-3 md:px-6 rounded-lg font-medium text-sm transition-all duration-300 ${
                   activeTab === 'client'
@@ -364,6 +374,9 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
+                  role="tabpanel"
+                  id="tabpanel-projects"
+                  aria-labelledby={activeTab === 'frontend' ? 'tab-frontend' : 'tab-client'}
                   initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
@@ -490,7 +503,7 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
                                     rel="noopener noreferrer"
                                     className="flex items-center justify-center gap-2 px-5 py-3 bg-brand-gold text-black font-medium rounded-lg shadow-md hover:bg-brand-gold-dark transition-all duration-300 text-sm w-full h-11"
                                   >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                     </svg>
                                     Live Website
@@ -500,7 +513,7 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
                                     onClick={() => setShowWorkSummary(true)}
                                     className="flex items-center justify-center gap-2 px-5 py-3 bg-transparent text-white/85 font-medium rounded-lg border border-white/25 hover:bg-white/[0.08] hover:border-white/35 hover:text-white/95 transition-all duration-300 text-sm w-full h-11"
                                   >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                     Work Summary
@@ -593,7 +606,7 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
                                 rel="noopener noreferrer"
                                 className="w-full md:flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-brand-gold text-black font-mono font-medium rounded-lg shadow-md hover:bg-brand-gold-dark transition-all duration-300 text-[10px] md:text-sm lg:text-base whitespace-nowrap h-9 md:h-11"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                 </svg>
                                 {active.category === 'client' ? 'Live Website' : 'Live Demo'}
@@ -604,7 +617,7 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
                                   onClick={() => setShowWorkSummary(true)}
                                   className="w-full md:flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-transparent text-white/85 font-mono font-medium rounded-lg border border-white/25 hover:bg-white/[0.08] hover:border-white/35 hover:text-white/95 transition-all duration-300 text-[10px] md:text-sm lg:text-base whitespace-nowrap h-9 md:h-11"
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                     Work Summary
@@ -616,7 +629,7 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
                                     rel="noopener noreferrer"
                                     className="w-full md:flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-transparent text-white/85 font-mono font-medium rounded-lg border border-white/25 hover:bg-white/[0.08] hover:border-white/35 hover:text-white/95 transition-all duration-300 text-[10px] md:text-sm lg:text-base whitespace-nowrap h-9 md:h-11"
                                   >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                                     </svg>
                                     Source Code

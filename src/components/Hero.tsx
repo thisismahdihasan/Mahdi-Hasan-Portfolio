@@ -174,7 +174,7 @@ const Hero = ({ entryRevealReady = true, heroContent }: HeroProps) => {
             href={content.primary_cta_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:w-auto px-6 py-3 text-sm font-medium bg-brand-gold text-black rounded-md text-center sm:text-left min-w-[140px]"
+            className="w-full sm:w-auto px-6 py-3 text-sm font-medium bg-brand-gold text-black rounded-md text-center sm:text-left min-w-[140px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             data-lens="on"
             whileHover={isMobile ? {} : { 
               scale: 1.05,
@@ -194,7 +194,7 @@ const Hero = ({ entryRevealReady = true, heroContent }: HeroProps) => {
           
           {/* Secondary CTA - View Projects (always scrolls to #projects) */}
           <motion.button 
-            className="w-full sm:w-auto px-6 py-3 text-sm font-medium border-2 border-neutral-700 dark:border-neutral-300 text-neutral-800 dark:text-primary rounded-md bg-transparent min-w-[140px]"
+            className="w-full sm:w-auto px-6 py-3 text-sm font-medium border-2 border-neutral-700 dark:border-neutral-300 text-neutral-800 dark:text-primary rounded-md bg-transparent min-w-[140px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             data-lens="on"
             onClick={() => {
               const element = document.getElementById('projects')

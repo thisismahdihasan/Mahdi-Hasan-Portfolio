@@ -12,6 +12,15 @@ const SmartLoader = ({ onComplete }: SmartLoaderProps) => {
   const [countdown, setCountdown] = useState(0)
   const [showWelcome, setShowWelcome] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setPrefersReducedMotion(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   useEffect(() => {
     // Check if user has visited before in this session
@@ -150,7 +159,7 @@ const SmartLoader = ({ onComplete }: SmartLoaderProps) => {
           >
             <motion.div
               className="text-8xl md:text-9xl font-bold text-brand-gold tracking-wider"
-              animate={{ 
+              animate={prefersReducedMotion ? {} : { 
                 scale: [1, 1.1, 1],
                 opacity: [0.8, 1, 0.8],
                 textShadow: [
@@ -159,7 +168,7 @@ const SmartLoader = ({ onComplete }: SmartLoaderProps) => {
                   "0 0 40px rgb(207 174 82 / 0.6)"
                 ]
               }}
-              transition={{ 
+              transition={prefersReducedMotion ? {} : { 
                 duration: 2, 
                 repeat: Infinity, 
                 ease: "easeInOut" 
@@ -172,8 +181,8 @@ const SmartLoader = ({ onComplete }: SmartLoaderProps) => {
             <div className="absolute inset-0 flex items-center justify-center">
               <motion.div
                 className="w-48 h-48 md:w-56 md:h-56 border border-brand-gold rounded-full opacity-30"
-                animate={{ rotate: 360 }}
-                transition={{ 
+                animate={prefersReducedMotion ? {} : { rotate: 360 }}
+                transition={prefersReducedMotion ? {} : { 
                   duration: 8, 
                   repeat: Infinity, 
                   ease: "linear" 
@@ -181,8 +190,8 @@ const SmartLoader = ({ onComplete }: SmartLoaderProps) => {
               />
               <motion.div
                 className="absolute w-64 h-64 md:w-72 md:h-72 border border-brand-gold rounded-full opacity-20"
-                animate={{ rotate: -360 }}
-                transition={{ 
+                animate={prefersReducedMotion ? {} : { rotate: -360 }}
+                transition={prefersReducedMotion ? {} : { 
                   duration: 12, 
                   repeat: Infinity, 
                   ease: "linear" 

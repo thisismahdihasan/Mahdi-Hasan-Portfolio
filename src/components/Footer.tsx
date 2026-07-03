@@ -97,17 +97,15 @@ const Footer = () => {
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.2 }}
               >
-                {/* The Glow (Sharp Laser Beam) */}
+                {/* The Glow (Sharp Laser Beam) — disabled for reduced-motion users */}
                 <motion.div
                   className="absolute inset-0"
                   style={{
                     background: `conic-gradient(from 0deg at 50% 50%, transparent 0deg, #D4AF37 180deg, transparent 200deg)`,
                     filter: 'blur(4px)'
                   }}
-                  animate={{
-                    rotate: [0, 360]
-                  }}
-                  transition={{
+                  animate={prefersReducedMotion ? {} : { rotate: [0, 360] }}
+                  transition={prefersReducedMotion ? {} : {
                     duration: 3,
                     ease: "linear",
                     repeat: Infinity
