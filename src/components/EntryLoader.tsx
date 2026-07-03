@@ -60,13 +60,12 @@ const EntryLoader = ({ onComplete }: EntryLoaderProps) => {
 
   return (
     <>
-      {/* CSS for animations — all GPU-composited (opacity, transform only) */}
       <style>{`
         /*
-         * goldGlow — BEFORE: animated text-shadow (paint-triggering)
-         * AFTER: animate opacity on an absolutely-positioned gold radial-glow
-         * layer behind the W. The W itself is always #D4AF37; the glow layer
-         * adds/removes the halo by changing opacity. GPU-composited.
+         * goldGlow — optimized: animated text-shadow replaced with
+         * opacity-animated ::before pseudo-element carrying a static drop-shadow.
+         * Only opacity animates → GPU-composited, no per-frame repaint.
+         * The W remains text-[#D4AF37] at full opacity; the glow layer pulses behind it.
          */
         @keyframes goldGlowLayer {
           0%, 100% { opacity: 0.55; }
@@ -78,21 +77,16 @@ const EntryLoader = ({ onComplete }: EntryLoaderProps) => {
           display: inline-block;
         }
 
-        /* Glow halo rendered behind the letter via a pseudo-element.
-           filter:drop-shadow on a static element is NOT animated — it is
-           applied once at paint time, not per frame. Only opacity animates. */
         .gold-glow-letter::before {
           content: "W";
           position: absolute;
           inset: 0;
           color: transparent;
-          /* Static drop-shadow — painted once, not re-painted per frame */
+          /* Static drop-shadow — painted once at promotion time, not per frame */
           filter: drop-shadow(0 0 28px rgb(212 175 55 / 0.9))
                   drop-shadow(0 0 56px rgb(212 175 55 / 0.5));
-          /* Opacity animation is GPU-composited */
           animation: goldGlowLayer 2s ease-in-out infinite;
           pointer-events: none;
-          /* Inherit font to exactly match the parent letter shape */
           font: inherit;
           letter-spacing: inherit;
           line-height: inherit;
@@ -116,49 +110,35 @@ const EntryLoader = ({ onComplete }: EntryLoaderProps) => {
         }
 
         /*
-         * lightSweep — BEFORE: animated background-position (paint-triggering)
-         * AFTER: a narrow gold-to-transparent gradient bar, absolutely positioned
-         * behind the text, animated via transform:translateX. GPU-composited.
-         * The text is rendered on top via z-index so letters stay visible.
+         * lightSweep — rolled back to original background-position approach.
+         * The transform:translateX overlay caused a visible gold rectangle over
+         * the text area, which is a premium-feel regression.
+         * background-clip:text is the only technique that constrains the shimmer
+         * to glyph pixels; there is no composited equivalent that is visually
+         * identical. Keeping paint accuracy over compositing here.
          */
-        @keyframes lightSweepSlide {
-          0%   { transform: translateX(-120%); }
-          100% { transform: translateX(220%);  }
+        @keyframes lightSweep {
+          0%   { background-position: -200% 0; }
+          100% { background-position:  200% 0; }
         }
 
-        .light-sweep-wrap {
-          position: relative;
-          display: inline-block;
-          /* clip so the sweep bar stays within the text bounds */
-          overflow: hidden;
-        }
-
-        /* The animated shine bar — sits behind the text */
-        .light-sweep-wrap::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          /* Narrow bar: wide enough for a soft shimmer edge */
-          width: 35%;
-          height: 100%;
+        .light-sweep {
           background: linear-gradient(
             90deg,
             transparent 0%,
-            rgba(212, 175, 55, 0.18) 30%,
-            rgba(212, 175, 55, 0.35) 50%,
-            rgba(212, 175, 55, 0.18) 70%,
+            transparent 40%,
+            rgba(212, 175, 55, 0.3) 50%,
+            transparent 60%,
             transparent 100%
           );
-          animation: lightSweepSlide 2s ease-in-out infinite;
-          pointer-events: none;
-          z-index: 0;
+          background-size: 200% 100%;
+          animation: lightSweep 2s ease-in-out infinite;
+          -webkit-background-clip: text;
+          background-clip: text;
         }
 
-        /* Text sits on top of the shine bar */
-        .light-sweep-text {
-          position: relative;
-          z-index: 1;
+        .gold-glow-disabled {
+          text-shadow: 0 0 20px rgb(212 175 55 / 0.4);
         }
       `}</style>
 
@@ -185,14 +165,7 @@ const EntryLoader = ({ onComplete }: EntryLoaderProps) => {
         <div className="relative z-10 flex flex-col items-center text-center">
           {/* WELCOME Text */}
           <h1 className="text-[clamp(56px,10vw,120px)] md:text-9xl font-black text-white tracking-tighter leading-none mb-8">
-            {/*
-              W — gold glow letter.
-              Before: text-shadow pulsing via @keyframes goldGlow (paint-triggering).
-              After:  ::before pseudo-element with static drop-shadow; only its
-                      opacity animates (GPU-composited via @keyframes goldGlowLayer).
-              The W itself is still #D4AF37 — visible at full opacity at all times.
-              The glow layer adds the cinematic pulsing halo behind it.
-            */}
+            {/* W — composited glow via opacity-animated ::before pseudo-element */}
             <span
               className={
                 prefersReducedMotion
@@ -202,17 +175,9 @@ const EntryLoader = ({ onComplete }: EntryLoaderProps) => {
             >
               W
             </span>
-            {/*
-              ELCOME — light sweep shimmer.
-              Before: background-position animated on background-clip:text (paint-triggering).
-              After:  ::before pseudo-element with a narrow gold gradient bar that
-                      slides across via transform:translateX (GPU-composited).
-              The text color is `text-white` as before; the shimmer is an overlay.
-            */}
-            <span className={prefersReducedMotion ? '' : 'light-sweep-wrap'}>
-              <span className={prefersReducedMotion ? '' : 'light-sweep-text'}>
-                ELCOME
-              </span>
+            {/* ELCOME — original background-clip:text shimmer (visual fidelity preserved) */}
+            <span className={prefersReducedMotion ? '' : 'light-sweep'}>
+              ELCOME
             </span>
             <span className="text-[#D4AF37]">.</span>
           </h1>
