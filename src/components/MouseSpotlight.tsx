@@ -1,23 +1,34 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
+/**
+ * MouseSpotlight — radial gradient that follows the cursor.
+ *
+ * Performance fix: CSS custom properties are updated via direct DOM mutation
+ * (divRef.current.style.setProperty) instead of React state. This eliminates
+ * the ~60Hz React re-render cycle that the previous useState approach caused,
+ * while producing an identical visual output.
+ */
 const MouseSpotlight = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-  const [isVisible, setIsVisible] = useState(false)
+  const divRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    const el = divRef.current
+    if (!el) return
+
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY })
-      setIsVisible(true)
+      el.style.setProperty('--mouse-x', `${e.clientX}px`)
+      el.style.setProperty('--mouse-y', `${e.clientY}px`)
+      el.classList.add('active')
     }
 
     const handleMouseLeave = () => {
-      setIsVisible(false)
+      el.classList.remove('active')
     }
 
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseleave', handleMouseLeave)
+    document.addEventListener('mousemove', handleMouseMove, { passive: true })
+    document.addEventListener('mouseleave', handleMouseLeave, { passive: true })
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove)
@@ -25,15 +36,7 @@ const MouseSpotlight = () => {
     }
   }, [])
 
-  return (
-    <div
-      className={`mouse-spotlight ${isVisible ? 'active' : ''}`}
-      style={{
-        '--mouse-x': `${mousePosition.x}px`,
-        '--mouse-y': `${mousePosition.y}px`,
-      } as React.CSSProperties}
-    />
-  )
+  return <div ref={divRef} className="mouse-spotlight" />
 }
 
 export default MouseSpotlight
