@@ -86,10 +86,7 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
           return
         }
 
-        console.log(`[ProjectsSection] Loaded ${mapped.length} projects from DB`)
-        console.log('[ProjectsSection] First mapped project:', mapped[0])
-
-        // Set both together so active never resolves to null between renders
+        // DB fetch succeeded — update state
         const firstFrontend = mapped.find(p => p.category === 'frontend') ?? mapped[0]
         setProjects(mapped)
         setActiveId(firstFrontend.id)
@@ -222,7 +219,6 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
   
   const active = useMemo(() => {
     const found = filteredProjects.find(p => p.id === activeId) ?? filteredProjects[0] ?? null
-    console.log('[ProjectsSection] active:', found?.title, 'filtered:', filteredProjects.length, 'projects:', projects.length)
     return found
   }, [filteredProjects, activeId, projects.length])
   

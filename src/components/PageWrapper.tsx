@@ -106,21 +106,22 @@ const PageWrapper = ({ children, entryLoaderComplete = true, skipSmartLoader = f
         Page content — always in the DOM from first paint.
         
         While the loader is active:
-          - aria-hidden="true"    → screen readers skip this subtree
-          - pointer-events: none  → no clicks, no hover, no focus
+          - pointer-events: none  → no clicks, no hover
           - user-select: none     → no text selection
-          - tabIndex -1 is not set here because pointer-events:none on the wrapper
-            combined with aria-hidden already fully blocks keyboard + AT interaction
+          - aria-hidden is intentionally NOT used here — it would hide the
+            <main> landmark and all focusable descendants from the accessibility
+            tree, causing Lighthouse to report "no main landmark" and
+            "aria-hidden contains focusable descendants".
+          - Instead, the SmartLoader's own fixed full-screen black overlay
+            (z-index: 10000, bg-black) is the visual cover. The content is
+            invisible (opacity: 0 via motion.div) and non-interactive
+            (pointer-events: none) while the loader plays. That is sufficient.
         
         After loading completes (isLoading = false):
-          - All restrictions are removed, normal interaction restored
-        
-        The content starts at opacity:0 (via the motion.div below) so it is
-        visually invisible behind the loader while the loader plays. Users see
-        exactly the same experience as before.
+          - pointer-events and user-select restrictions are removed.
+          - Normal interaction is fully restored.
       */}
       <div
-        aria-hidden={isLoading ? true : undefined}
         style={isLoading ? { pointerEvents: 'none', userSelect: 'none' } : undefined}
       >
         <motion.div

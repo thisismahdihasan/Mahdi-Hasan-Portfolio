@@ -422,9 +422,13 @@ const ContactSection = () => {
                     )}
                   </div>
 
-                  {/* Honeypot — hidden from humans, catches bots */}
-                  <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+                  {/* Honeypot — hidden from humans, catches bots.
+                      aria-hidden on the input itself removes it from the
+                      accessibility tree without disabling event dispatch,
+                      preserving full honeypot functionality. */}
+                  <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
                     <input
+                      aria-hidden="true"
                       type="text"
                       name="honeypot"
                       tabIndex={-1}
