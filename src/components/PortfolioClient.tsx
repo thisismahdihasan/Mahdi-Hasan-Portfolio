@@ -14,6 +14,7 @@ import ContactSection from '@/components/contact/ContactSection'
 import Footer from '@/components/Footer'
 import EntryLoader from '@/components/EntryLoader'
 import RefreshLoader from '@/components/RefreshLoader'
+import FallBeamBackground from '@/components/FallBeamBackground'
 import { useEntryLoader } from '@/hooks/useEntryLoader'
 import type { Project } from '@/types/project'
 import type { SerializableSkillCategory } from '@/app/page'
@@ -80,6 +81,11 @@ export default function PortfolioClient({ initialProjects, initialSkillCategorie
           animate={{ opacity: 1 }}
           transition={{ duration: 0.55, ease: 'easeOut' }}
         >
+          {/* Fall Beam Background — public portfolio only, not rendered on /dashboard */}
+          <FallBeamBackground
+            beamColorClass="golden"
+            className="z-1"
+          />
           <main id="main-content" className="text-neutral-800 dark:text-neutral-200 min-h-screen relative" style={{ touchAction: 'pan-y' }}>
             <MouseSpotlight />
 

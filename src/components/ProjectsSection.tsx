@@ -543,11 +543,12 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
                         >
                           {/* Zone A: Full Card Hero + Inner Cinema Frame */}
                           <div className="relative overflow-hidden bg-neutral-900 w-full h-[220px] md:h-[300px] lg:h-[340px] flex-shrink-0">
-                            {/* Blurred background layer */}
+                            {/* Blurred background layer — decorative only, load lazily */}
                             <Image
                               src={active.image}
                               alt=""
                               fill
+                              loading="lazy"
                               className="object-cover object-center md:blur-2xl scale-110 opacity-40"
                               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 900px" // ✅ Optimized sizes
                             />

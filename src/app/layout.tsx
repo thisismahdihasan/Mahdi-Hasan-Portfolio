@@ -3,7 +3,6 @@ import { Syne, Manrope } from 'next/font/google'
 import './globals.css'
 import { SmoothScrollProvider } from '@/components/providers/SmoothScrollProvider'
 import CustomCursor from '@/components/CustomCursor'
-import FallBeamBackground from '@/components/FallBeamBackground'
 import { Toaster } from 'react-hot-toast'
 import { siteConfig, PersonJsonLd } from '@/lib/seo'
 
@@ -103,12 +102,6 @@ export default function RootLayout({
         </a>
         <PersonJsonLd />
         <div className="relative min-h-screen flex flex-col">
-          {/* Global Fall Beam Background - Full page coverage */}
-          <FallBeamBackground 
-            beamColorClass="golden" 
-            className="z-1" 
-          />
-          
           <CustomCursor />
           <SmoothScrollProvider>
             <div className="relative z-10 flex-1">
