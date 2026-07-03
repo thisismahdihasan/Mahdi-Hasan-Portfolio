@@ -64,6 +64,7 @@ const ProfileImage = ({ entryRevealReady = true, profileImageUrl }: ProfileImage
           src={profileImageUrl || '/formal_Img_org.webp'}
           fill
           priority
+          fetchPriority="high"
           sizes="(max-width: 1024px) 100vw, 45vw"
           style={{ 
             zIndex: 50, 

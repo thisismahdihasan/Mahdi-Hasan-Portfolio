@@ -81,20 +81,23 @@ const FallBeamBackground: React.FC<FallBeamBackgroundProps> = ({
     .fall-beam-line::after {
       content: "";
       position: absolute;
+      top: 0;
       left: 0;
       width: 100%;
       /* Dynamic beam glow color gradient */
       background: linear-gradient(to bottom,
         rgba(255, 255, 255, 0),
         var(--beam-glow-color));
+      /* translateY: GPU-composited, no layout recalculation per frame.
+         Starts fully above the container (-glow-height), exits at 100vh. */
       animation: fall var(--ani-duration) var(--ani-delay) cubic-bezier(0.11, 0, 0.5, 0) infinite;
       filter: blur(0.8px) drop-shadow(0 0 8px rgba(212, 175, 55, 0.3));
       height: var(--glow-height);
     }
     
     @keyframes fall {
-      0% { top: -150px; }
-      100% { top: 100%; }
+      0%   { transform: translateY(calc(-1 * var(--glow-height))); }
+      100% { transform: translateY(100vh); }
     }
     
     @keyframes pulse-opacity {

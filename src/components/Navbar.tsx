@@ -271,6 +271,8 @@ const Navbar = ({ entryRevealReady = true }: { entryRevealReady?: boolean }) => 
               <img 
                 src="/mh.svg" 
                 alt="MH Logo"
+                width="26"
+                height="26"
                 className="h-5 md:h-[26px] w-auto transition-all duration-300 hover:opacity-90 hover:drop-shadow-[0_0_14px_rgba(223,181,42,0.18)]"
                 onError={(e) => {
                   // Fallback to PNG if SVG fails

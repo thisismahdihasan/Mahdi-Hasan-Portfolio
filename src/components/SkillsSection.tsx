@@ -88,7 +88,6 @@ const SkillsSection = ({ initialSkillCategories }: { initialSkillCategories?: Se
           return
         }
 
-        console.log('[SkillsSection] Loaded categories from DB:', mapped.length)
         setSkillCategories(mapped)
       } catch (err) {
         console.warn('[SkillsSection] Supabase fetch failed — using fallback:', err)
