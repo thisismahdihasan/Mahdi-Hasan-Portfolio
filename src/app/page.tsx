@@ -17,9 +17,9 @@ export interface SerializableSkillCategory {
 const HERO_FALLBACK: HeroContent = {
   id: 1,
   name: 'MAHDI HASAN',
-  role: 'Junior Frontend Developer',
+  role: 'Junior Full Stack Developer',
   description:
-    'Building responsive web applications with React, Next.js, and Tailwind CSS. Experienced in full-stack development using the MERN stack with a focus on clean code and user-centric design.',
+    'Building scalable web applications with Node.js, Express.js, PostgreSQL, React, and Next.js. Focused on full-stack development with a strong backend foundation and clean, user-centric interfaces.',
   primary_cta_label: 'Download Resume',
   primary_cta_url: "/Mahdi_Hasan's_Resume.pdf",
   secondary_cta_label: 'View Projects',
@@ -73,16 +73,16 @@ const ABOUT_FALLBACK: AboutContent = {
   intro_after_emphasis:
     "but I was always drawn to logic, structure, and building things. The turning point came when I realized I was preparing for a future I didn't want. I chose to pivot, got the support I needed, and began my development journey through Programming Hero—then kept growing through real projects and consistent practice.",
   highlight_quote:
-    'From history to frontend — I build clean, structured UI that feels product-ready.',
+    'From history to full-stack — I build scalable, product-ready web applications.',
   current_paragraph:
-    "Today, I work with the MERN stack with a frontend-first mindset: crafting responsive layouts, building reusable React components, and integrating real features like authentication and APIs. I care about clarity—both in code and in the user experience. I'm also building with Next.js and improving my workflow for scalable, production-ready apps.",
+    "Today, I work across the full stack with a backend-first mindset: designing REST APIs, managing databases with PostgreSQL and Prisma, building real-time features with Socket.IO, and crafting clean React and Next.js interfaces. I care about clarity—both in code and in the user experience—and I'm always iterating toward scalable, production-ready systems.",
   core_expertise: [
-    'Responsive Layouts (mobile-first)',
-    'React + Component-Based UI',
-    'API Integration + Auth',
-    'Tailwind CSS + Modern UI',
-    'MERN Foundations (Node/Express/MongoDB)',
-    'Deployment (Vercel/Netlify/Firebase)',
+    'Node.js + Express.js (REST APIs)',
+    'PostgreSQL + Prisma (ORM)',
+    'Socket.IO (Real-time)',
+    'React + Next.js (Frontend)',
+    'TypeScript',
+    'Deployment (Vercel/Railway/Supabase)',
   ],
   beyond_code_title: 'Beyond Code',
   beyond_code_paragraph:

@@ -50,6 +50,7 @@ export const siteConfig = {
     github:    'https://github.com/thisismahdihasan/',
     facebook:  'https://www.facebook.com/thisismahdihasan/',
     instagram: 'https://www.instagram.com/thisismahdihasan/',
+    threads:   'https://www.threads.net/@thisismahdihasan',
     x:         'https://x.com/thisismahdix',
     tiktok:    'https://www.tiktok.com/@thisismahdihasan',
   },
@@ -79,7 +80,7 @@ export function PersonJsonLd() {
 
         mainEntityOfPage: {
           '@type': 'WebPage',
-          '@id':   siteConfig.url,
+          '@id':   `${siteConfig.url}/#webpage`,
         },
 
         jobTitle:    siteConfig.jobTitle,

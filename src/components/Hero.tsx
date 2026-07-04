@@ -26,9 +26,9 @@ import type { HeroContent } from '@/types/hero'
 const FALLBACK: HeroContent = {
   id: 1,
   name: 'MAHDI HASAN',
-  role: 'Junior Frontend Developer',
+  role: 'Junior Full Stack Developer',
   description:
-    'Building responsive web applications with React, Next.js, and Tailwind CSS. Experienced in full-stack development using the MERN stack with a focus on clean code and user-centric design.',
+    'Building scalable web applications with Node.js, Express.js, PostgreSQL, React, and Next.js. Focused on full-stack development with a strong backend foundation and clean, user-centric interfaces.',
   primary_cta_label: 'Download Resume',
   primary_cta_url: "/Mahdi_Hasan's_Resume.pdf",
   secondary_cta_label: 'View Projects',

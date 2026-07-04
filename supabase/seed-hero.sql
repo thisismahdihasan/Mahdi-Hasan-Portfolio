@@ -5,7 +5,7 @@
 create table if not exists hero_content (
   id                  integer primary key default 1,
   name                text not null default 'MAHDI HASAN',
-  role                text not null default 'Junior Frontend Developer',
+  role                text not null default 'Junior Full Stack Developer',
   description         text not null default '',
   primary_cta_label   text not null default 'Download Resume',
   primary_cta_url     text not null default '/Mahdi_Hasan''s_Resume.pdf',
@@ -39,8 +39,8 @@ insert into hero_content (
 values (
   1,
   'MAHDI HASAN',
-  'Junior Frontend Developer',
-  'Building responsive web applications with React, Next.js, and Tailwind CSS. Experienced in full-stack development using the MERN stack with a focus on clean code and user-centric design.',
+  'Junior Full Stack Developer',
+  'Building scalable web applications with Node.js, Express.js, PostgreSQL, React, and Next.js. Focused on full-stack development with a strong backend foundation and clean, user-centric interfaces.',
   'Download Resume',
   '/Mahdi_Hasan''s_Resume.pdf',
   'View Projects'

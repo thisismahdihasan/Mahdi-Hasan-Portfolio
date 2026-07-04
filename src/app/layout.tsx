@@ -118,7 +118,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title:       resolvedTitle,
       description: resolvedDescription,
       images:      [resolvedTwitterImage],
-      creator:     '@mahdihasan',
+      creator:     '@thisismahdix',
     },
     icons: {
       icon: [

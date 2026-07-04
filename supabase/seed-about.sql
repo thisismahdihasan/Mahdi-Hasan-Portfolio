@@ -55,15 +55,15 @@ insert into about_content (
   'I come from a non-traditional background',
   '—my academic path was in History—',
   'but I was always drawn to logic, structure, and building things. The turning point came when I realized I was preparing for a future I didn''t want. I chose to pivot, got the support I needed, and began my development journey through Programming Hero—then kept growing through real projects and consistent practice.',
-  'From history to frontend — I build clean, structured UI that feels product-ready.',
-  'Today, I work with the MERN stack with a frontend-first mindset: crafting responsive layouts, building reusable React components, and integrating real features like authentication and APIs. I care about clarity—both in code and in the user experience. I''m also building with Next.js and improving my workflow for scalable, production-ready apps.',
+  'From history to full-stack — I build scalable, product-ready web applications.',
+  'Today, I work across the full stack with a backend-first mindset: designing REST APIs, managing databases with PostgreSQL and Prisma, building real-time features with Socket.IO, and crafting clean React and Next.js interfaces. I care about clarity—both in code and in the user experience—and I''m always iterating toward scalable, production-ready systems.',
   ARRAY[
-    'Responsive Layouts (mobile-first)',
-    'React + Component-Based UI',
-    'API Integration + Auth',
-    'Tailwind CSS + Modern UI',
-    'MERN Foundations (Node/Express/MongoDB)',
-    'Deployment (Vercel/Netlify/Firebase)'
+    'Node.js + Express.js (REST APIs)',
+    'PostgreSQL + Prisma (ORM)',
+    'Socket.IO (Real-time)',
+    'React + Next.js (Frontend)',
+    'TypeScript',
+    'Deployment (Vercel/Railway/Supabase)'
   ],
   'Beyond Code',
   'When I''m not coding, I''m usually at the gym. Training keeps me consistent and focused—and that same discipline shows up in how I work: I stay calm under pressure, iterate through feedback, and keep improving until the details feel right.',
