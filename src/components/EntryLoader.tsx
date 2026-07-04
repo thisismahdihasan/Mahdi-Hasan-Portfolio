@@ -184,7 +184,7 @@ const EntryLoader = ({ onComplete }: EntryLoaderProps) => {
           
           {/* Progress Ring — unchanged */}
           <div className="relative w-24 h-24 flex items-center justify-center">
-            <svg className="w-full h-full -rotate-90">
+            <svg aria-hidden="true" className="w-full h-full -rotate-90">
               {/* Background ring */}
               <circle 
                 cx="48" 

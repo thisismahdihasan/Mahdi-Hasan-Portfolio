@@ -29,7 +29,7 @@ function mergeWithFallback(serverCats: SerializableSkillCategory[]): SkillCatego
   })
 }
 
-const SkillsSection = ({ initialSkillCategories }: { initialSkillCategories?: SerializableSkillCategory[] }) => {
+const SkillsSection = ({ initialSkillCategories, skillsFromSupabase = true }: { initialSkillCategories?: SerializableSkillCategory[]; skillsFromSupabase?: boolean }) => {
   // Use shared media query hooks for better performance
   const { isMobile, prefersReducedMotion } = useMediaPreferences()
 
@@ -43,6 +43,13 @@ const SkillsSection = ({ initialSkillCategories }: { initialSkillCategories?: Se
 
   useEffect(() => {
     const fetchSkills = async () => {
+      // Skip client re-fetch if:
+      // 1. Server already provided valid data (ISR cache hit), OR
+      // 2. Server confirmed Supabase was unreachable — no point retrying from the client.
+      //    The client has no more information than the server did; retrying only
+      //    produces console noise and an unnecessary failed network request.
+      if ((initialSkillCategories && initialSkillCategories.length > 0) || !skillsFromSupabase) return
+
       try {
         const { data: catData, error: catError } = await supabase
           .from('skill_categories')
@@ -316,7 +323,7 @@ const SkillsSection = ({ initialSkillCategories }: { initialSkillCategories?: Se
                 className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-14 z-40 w-10 h-10 rounded-full bg-white/[0.08] md:backdrop-blur-sm border border-white/20 opacity-60 hover:opacity-100 focus:opacity-100 hover:border-brand-gold/40 hover:bg-white/[0.12] transition-all duration-420 items-center justify-center group"
                 aria-label="Previous card"
               >
-                <svg className="w-5 h-5 text-white/70 group-hover:text-brand-gold transition-colors duration-420" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg aria-hidden="true" className="w-5 h-5 text-white/70 group-hover:text-brand-gold transition-colors duration-420" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
@@ -327,7 +334,7 @@ const SkillsSection = ({ initialSkillCategories }: { initialSkillCategories?: Se
                 className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-14 z-40 w-10 h-10 rounded-full bg-white/[0.08] md:backdrop-blur-sm border border-white/20 opacity-60 hover:opacity-100 focus:opacity-100 hover:border-brand-gold/40 hover:bg-white/[0.12] transition-all duration-420 items-center justify-center group"
                 aria-label="Next card"
               >
-                <svg className="w-5 h-5 text-white/70 group-hover:text-brand-gold transition-colors duration-420" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg aria-hidden="true" className="w-5 h-5 text-white/70 group-hover:text-brand-gold transition-colors duration-420" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
@@ -371,14 +378,19 @@ const SkillsSection = ({ initialSkillCategories }: { initialSkillCategories?: Se
                       onClick={() => {
                         setActiveCardIndex(index)
                       }}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                        index === activeCardIndex
-                          ? 'bg-brand-gold w-6'
-                          : 'bg-white/20 hover:bg-white/40'
-                      }`}
+                      /* Enlarged touch target via padding — visible dot stays 8×8px (active: 24×8px) */
+                      className="p-3 -m-3 flex items-center justify-center"
                       aria-label={`View ${category.title}`}
                       aria-pressed={index === activeCardIndex}
-                    />
+                    >
+                      <span
+                        className={`block rounded-full transition-all duration-300 h-2 ${
+                          index === activeCardIndex
+                            ? 'bg-brand-gold w-6'
+                            : 'bg-white/20 hover:bg-white/40 w-2'
+                        }`}
+                      />
+                    </button>
                   ))}
                 </div>
               </div>

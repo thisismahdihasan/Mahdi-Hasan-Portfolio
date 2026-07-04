@@ -48,7 +48,7 @@ const WorkSummaryModal = ({ active, onClose }: WorkSummaryModalProps) => {
           className="absolute top-4 right-4 w-10 h-10 flex-shrink-0 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors duration-300 flex items-center justify-center z-[60]"
           aria-label="Close modal"
         >
-          <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg aria-hidden="true" className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>

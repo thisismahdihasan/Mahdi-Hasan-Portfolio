@@ -23,12 +23,14 @@ import type { AboutContent } from '@/types/about'
 
 interface Props {
   initialProjects?: Project[]
+  projectsFromSupabase?: boolean
   initialSkillCategories?: SerializableSkillCategory[]
+  skillsFromSupabase?: boolean
   initialHeroContent?: HeroContent
   initialAboutContent?: AboutContent
 }
 
-export default function PortfolioClient({ initialProjects, initialSkillCategories, initialHeroContent, initialAboutContent }: Props) {
+export default function PortfolioClient({ initialProjects, projectsFromSupabase = true, initialSkillCategories, skillsFromSupabase = true, initialHeroContent, initialAboutContent }: Props) {
   const {
     showEntryLoader,
     showRefreshLoader,
@@ -101,8 +103,8 @@ export default function PortfolioClient({ initialProjects, initialSkillCategorie
               </div>
             </section>
 
-            <SkillsSection initialSkillCategories={initialSkillCategories} />
-            <ProjectsSection initialProjects={initialProjects} />
+            <SkillsSection initialSkillCategories={initialSkillCategories} skillsFromSupabase={skillsFromSupabase} />
+            <ProjectsSection initialProjects={initialProjects} projectsFromSupabase={projectsFromSupabase} />
             <AboutSection aboutContent={initialAboutContent} />
             <ContactSection />
             <Footer />

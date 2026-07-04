@@ -139,11 +139,11 @@ async function getAboutContent(): Promise<AboutContent> {
   }
 }
 
-async function getInitialProjects(): Promise<Project[] | undefined> {
+async function getInitialProjects(): Promise<{ data: Project[] | undefined; fromSupabase: boolean }> {
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    if (!url || !key) return undefined
+    if (!url || !key) return { data: undefined, fromSupabase: false }
 
     const res = await fetch(
       `${url}/rest/v1/projects?status=eq.published&order=sort_order.asc,created_at.desc&select=*`,
@@ -157,9 +157,9 @@ async function getInitialProjects(): Promise<Project[] | undefined> {
       }
     )
 
-    if (!res.ok) return undefined
+    if (!res.ok) return { data: undefined, fromSupabase: false }
     const data: any[] = await res.json()
-    if (!Array.isArray(data) || data.length === 0) return undefined
+    if (!Array.isArray(data) || data.length === 0) return { data: undefined, fromSupabase: true }
 
     const mapped: Project[] = data
       .map((row) => {
@@ -182,17 +182,17 @@ async function getInitialProjects(): Promise<Project[] | undefined> {
       })
       .filter(Boolean) as Project[]
 
-    return mapped.length > 0 ? mapped : undefined
+    return { data: mapped.length > 0 ? mapped : undefined, fromSupabase: true }
   } catch {
-    return undefined
+    return { data: undefined, fromSupabase: false }
   }
 }
 
-async function getInitialSkillCategories(): Promise<SerializableSkillCategory[] | undefined> {
+async function getInitialSkillCategories(): Promise<{ data: SerializableSkillCategory[] | undefined; fromSupabase: boolean }> {
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    if (!url || !key) return undefined
+    if (!url || !key) return { data: undefined, fromSupabase: false }
 
     const headers = {
       apikey: key,
@@ -211,12 +211,12 @@ async function getInitialSkillCategories(): Promise<SerializableSkillCategory[] 
       ),
     ])
 
-    if (!catRes.ok || !skillRes.ok) return undefined
+    if (!catRes.ok || !skillRes.ok) return { data: undefined, fromSupabase: false }
 
     const catData: { id: string; title: string }[] = await catRes.json()
     const skillData: { name: string; category_id: string }[] = await skillRes.json()
 
-    if (!Array.isArray(catData) || catData.length === 0) return undefined
+    if (!Array.isArray(catData) || catData.length === 0) return { data: undefined, fromSupabase: true }
 
     const mapped: SerializableSkillCategory[] = catData.map((cat) => ({
       title: cat.title,
@@ -225,16 +225,16 @@ async function getInitialSkillCategories(): Promise<SerializableSkillCategory[] 
         .map((s) => s.name),
     }))
 
-    return mapped.length > 0 ? mapped : undefined
+    return { data: mapped.length > 0 ? mapped : undefined, fromSupabase: true }
   } catch {
-    return undefined
+    return { data: undefined, fromSupabase: false }
   }
 }
 
 // ── Server component page ────────────────────────────────────────────────────
 export default async function Home() {
-  // Fetch in parallel — failures return undefined, client handles fallback
-  const [initialHeroContent, initialAboutContent, initialProjects, initialSkillCategories] = await Promise.all([
+  // Fetch in parallel — failures return { data: undefined, fromSupabase: false }
+  const [initialHeroContent, initialAboutContent, projectsResult, skillsResult] = await Promise.all([
     getHeroContent(),
     getAboutContent(),
     getInitialProjects(),
@@ -245,8 +245,10 @@ export default async function Home() {
     <PortfolioClient
       initialHeroContent={initialHeroContent}
       initialAboutContent={initialAboutContent}
-      initialProjects={initialProjects}
-      initialSkillCategories={initialSkillCategories}
+      initialProjects={projectsResult.data}
+      projectsFromSupabase={projectsResult.fromSupabase}
+      initialSkillCategories={skillsResult.data}
+      skillsFromSupabase={skillsResult.fromSupabase}
     />
   )
 }

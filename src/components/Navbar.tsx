@@ -319,7 +319,7 @@ const Navbar = ({ entryRevealReady = true }: { entryRevealReady?: boolean }) => 
               data-lens="on"
               style={{ minWidth: '40px', minHeight: '40px' }}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {mobileMenuOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
@@ -405,6 +405,7 @@ const Navbar = ({ entryRevealReady = true }: { entryRevealReady?: boolean }) => 
                         {/* Active indicator arrow */}
                         {activeSection === item.id && (
                           <motion.svg
+                            aria-hidden="true"
                             className="w-4 h-4 ml-auto text-brand-gold relative z-10"
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}

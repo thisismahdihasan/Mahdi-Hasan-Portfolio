@@ -18,7 +18,7 @@ const WorkSummaryModal = dynamic(() => import('./WorkSummaryModal'), {
   loading: () => null // No loading component needed
 })
 
-const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) => {
+const ProjectsSection = ({ initialProjects, projectsFromSupabase = true }: { initialProjects?: Project[]; projectsFromSupabase?: boolean }) => {
   // Use shared media query hooks for better performance
   const { isMobile, prefersReducedMotion } = useMediaPreferences()
   const [isMounted, setIsMounted] = useState(false) // Track component mount status
@@ -37,6 +37,13 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
 
   useEffect(() => {
     const fetchProjects = async () => {
+      // Skip client re-fetch if:
+      // 1. Server already provided valid data (ISR cache hit), OR
+      // 2. Server confirmed Supabase was unreachable — no point retrying from the client.
+      //    The client has no more information than the server did; retrying only
+      //    produces console noise and an unnecessary failed network request.
+      if ((initialProjects && initialProjects.length > 0) || !projectsFromSupabase) return
+
       try {
         const { data, error } = await supabase
           .from('projects')
@@ -685,7 +692,7 @@ const ProjectsSection = ({ initialProjects }: { initialProjects?: Project[] }) =
                                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                                   
                                   <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-brand-gold/20 md:backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    <svg className="w-3.5 h-3.5 text-brand-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg aria-hidden="true" className="w-3.5 h-3.5 text-brand-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     </svg>
