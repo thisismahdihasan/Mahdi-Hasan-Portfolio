@@ -16,15 +16,22 @@ jobs:
     steps:
       - name: Ping seo_settings table
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+          echo "Pinging Supabase REST endpoint..."
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
             "${{ secrets.SUPABASE_URL }}/rest/v1/seo_settings?select=id&limit=1&t=$(date +%s)" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+
+          # Last line is the HTTP status code; everything before it is the body
+          STATUS=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
 
           echo "Supabase ping returned HTTP $STATUS"
 
           if [ "$STATUS" != "200" ]; then
             echo "Ping failed — expected 200, got $STATUS"
+            echo "Response body (no secrets): $BODY"
             exit 1
           fi
 
