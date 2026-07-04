@@ -6,36 +6,55 @@
 
 export const siteConfig = {
   name:            'Mahdi Hasan',
-  title:           'Mahdi Hasan | Junior Frontend Developer',
+  alternateName:   'thisismahdihasan',
+
+  title:           'Mahdi Hasan | Junior Full Stack Developer',
   titleTemplate:   '%s | Mahdi Hasan',
+
   description:
-    'Junior Frontend Developer specializing in React, Next.js, and Tailwind CSS. ' +
-    'Building clean, responsive web applications with the MERN stack. ' +
-    'Open to roles and freelance projects.',
+    'Junior Full Stack Developer focused on scalable backend systems and modern web applications using Node.js, Express.js, PostgreSQL, Prisma, Socket.IO, React, Next.js, and TypeScript.',
+
   url:             'https://thisismahdihasan.com',
+
   applicationName: 'Mahdi Hasan Portfolio',
+
   creator:         'Mahdi Hasan',
   publisher:       'Mahdi Hasan',
+
   category:        'technology',
-  jobTitle:        'Junior Frontend Developer',
+
+  jobTitle:        'Junior Full Stack Developer',
+
   keywords: [
     'Mahdi Hasan',
-    'Frontend Developer',
-    'React Developer',
-    'Next.js Developer',
-    'Tailwind CSS',
-    'MERN Stack',
-    'JavaScript',
+    'thisismahdihasan',
+    'Junior Full Stack Developer',
+    'Full Stack Developer',
+    'Backend Developer',
+    'Node.js',
+    'Express.js',
+    'PostgreSQL',
+    'Prisma',
+    'Socket.IO',
+    'React',
+    'Next.js',
     'TypeScript',
-    'Web Developer Bangladesh',
+    'JavaScript',
+    'REST API',
     'Portfolio',
+    'Bangladesh Developer',
   ],
+
   social: {
-    linkedin: 'https://www.linkedin.com/in/mahdi9162/',
-    github:   'https://github.com/mahdi9162',
-    facebook: 'https://www.facebook.com/mahdi916/',
+    linkedin:  'https://www.linkedin.com/in/thisismahdihasan/',
+    github:    'https://github.com/thisismahdihasan/',
+    facebook:  'https://www.facebook.com/thisismahdihasan/',
+    instagram: 'https://www.instagram.com/thisismahdihasan/',
+    x:         'https://x.com/thisismahdix',
+    tiktok:    'https://www.tiktok.com/@thisismahdihasan',
   },
-  locale: 'en_US',
+
+  locale:     'en_US',
   themeColor: '#D4AF37',
 }
 
@@ -51,39 +70,62 @@ export function PersonJsonLd() {
       {
         '@type': 'Person',
         '@id':   `${siteConfig.url}/#person`,
-        name:       siteConfig.name,
-        url:        siteConfig.url,
-        jobTitle:   siteConfig.jobTitle,
+
+        name:          siteConfig.name,
+        alternateName: siteConfig.alternateName,
+
+        url:   siteConfig.url,
+        image: `${siteConfig.url}/api/og-image`,
+
+        mainEntityOfPage: {
+          '@type': 'WebPage',
+          '@id':   siteConfig.url,
+        },
+
+        jobTitle:    siteConfig.jobTitle,
         description: siteConfig.description,
+
         knowsAbout: [
+          'Node.js',
+          'Express.js',
+          'PostgreSQL',
+          'Prisma',
+          'Socket.IO',
           'React',
           'Next.js',
-          'Tailwind CSS',
-          'JavaScript',
           'TypeScript',
-          'Node.js',
-          'Express',
-          'MongoDB',
-          'MERN Stack',
-          'Responsive Web Design',
+          'JavaScript',
           'REST APIs',
+          'Backend Development',
+          'Full Stack Development',
+          'Web Application Architecture',
         ],
+
         sameAs: [
           siteConfig.social.linkedin,
           siteConfig.social.github,
           siteConfig.social.facebook,
+          siteConfig.social.instagram,
+          siteConfig.social.x,
+          siteConfig.social.tiktok,
         ],
       },
       {
         '@type': 'WebSite',
         '@id':   `${siteConfig.url}/#website`,
-        url:     siteConfig.url,
-        name:    siteConfig.applicationName,
+
+        url:         siteConfig.url,
+        name:        siteConfig.applicationName,
         description: siteConfig.description,
+        inLanguage:  'en-US',
+
         author: {
           '@id': `${siteConfig.url}/#person`,
         },
-        inLanguage: 'en-US',
+
+        publisher: {
+          '@id': `${siteConfig.url}/#person`,
+        },
       },
     ],
   }
