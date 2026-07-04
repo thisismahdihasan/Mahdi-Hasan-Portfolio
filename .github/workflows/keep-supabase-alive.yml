@@ -1,0 +1,31 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Every Monday at 09:00 UTC
+    - cron: '0 9 * * 1'
+    # Every Thursday at 09:00 UTC
+    - cron: '0 9 * * 4'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping Supabase
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping seo_settings table
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/seo_settings?select=id&limit=1&t=$(date +%s)" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+
+          echo "Supabase ping returned HTTP $STATUS"
+
+          if [ "$STATUS" != "200" ]; then
+            echo "Ping failed — expected 200, got $STATUS"
+            exit 1
+          fi
+
+          echo "Supabase is alive."
