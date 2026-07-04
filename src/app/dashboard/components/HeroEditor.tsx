@@ -330,7 +330,7 @@ export default function HeroEditor() {
                     type="text"
                     value={form.role}
                     onChange={e => set('role', e.target.value)}
-                    placeholder="Junior Frontend Developer"
+                    placeholder="Junior Full Stack Developer"
                     required
                     className={inputCls}
                   />

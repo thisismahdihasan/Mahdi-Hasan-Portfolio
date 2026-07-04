@@ -245,7 +245,7 @@ export default function SeoEditor() {
                 type="text"
                 value={form.seo_title}
                 onChange={e => set('seo_title', e.target.value)}
-                placeholder="Mahdi Hasan | Junior Frontend Developer"
+                placeholder="Mahdi Hasan | Junior Full Stack Developer"
                 maxLength={120}
                 className={inputCls}
               />
@@ -271,7 +271,7 @@ export default function SeoEditor() {
               <textarea
                 value={form.seo_description}
                 onChange={e => set('seo_description', e.target.value)}
-                placeholder="Junior Frontend Developer specializing in React, Next.js, and Tailwind CSS…"
+                placeholder="Junior Full Stack Developer specializing in Node.js, Express.js, PostgreSQL, React, and Next.js…"
                 rows={3}
                 maxLength={320}
                 className={textareaCls}
