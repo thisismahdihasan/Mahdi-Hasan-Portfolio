@@ -13,8 +13,9 @@ import SkillsManager from './components/SkillsManager'
 import AnalyticsSection from './components/AnalyticsSection'
 import SettingsSection from './components/SettingsSection'
 import InboxSection from './components/InboxSection'
+import SeoEditor from './components/SeoEditor'
 
-type Section = 'overview' | 'home' | 'about' | 'projects' | 'skills' | 'analytics' | 'inbox' | 'settings'
+type Section = 'overview' | 'home' | 'about' | 'projects' | 'skills' | 'analytics' | 'inbox' | 'settings' | 'seo'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -147,6 +148,8 @@ export default function DashboardPage() {
         return <SettingsSection user={user} onSignOut={handleSignOut} />
       case 'inbox':
         return <InboxSection />
+      case 'seo':
+        return <SeoEditor />
     }
   }
 

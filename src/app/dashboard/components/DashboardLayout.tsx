@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import type { User } from '@supabase/supabase-js'
 
-type Section = 'overview' | 'home' | 'about' | 'projects' | 'skills' | 'analytics' | 'inbox' | 'settings'
+type Section = 'overview' | 'home' | 'about' | 'projects' | 'skills' | 'analytics' | 'inbox' | 'settings' | 'seo'
 
 interface NavItem {
   id: Section
@@ -19,6 +19,7 @@ const NAV: NavItem[] = [
   { id: 'skills',     label: 'Skills',     icon: 'auto_awesome' },
   { id: 'analytics',  label: 'Analytics',  icon: 'insights' },
   { id: 'inbox',      label: 'Inbox',      icon: 'inbox' },
+  { id: 'seo',        label: 'SEO',        icon: 'search' },
   { id: 'settings',   label: 'Settings',   icon: 'settings' },
 ]
 

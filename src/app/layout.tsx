@@ -20,63 +20,111 @@ const manrope = Manrope({
   display: 'swap',
 })
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
-  title: {
-    default:  siteConfig.title,
-    template: siteConfig.titleTemplate,
-  },
-  description:     siteConfig.description,
-  applicationName: siteConfig.applicationName,
-  authors:         [{ name: siteConfig.name, url: siteConfig.url }],
-  creator:         siteConfig.creator,
-  publisher:       siteConfig.publisher,
-  category:        siteConfig.category,
-  keywords:        siteConfig.keywords,
-  alternates: {
-    canonical: '/',
-  },
-  robots: {
-    index:               true,
-    follow:              true,
-    googleBot: {
-      index:             true,
-      follow:            true,
-      'max-image-preview':  'large',
-      'max-snippet':        -1,
-      'max-video-preview':  -1,
+// ── Dynamic metadata — fetches SEO overrides from DB with siteConfig fallback ─
+export async function generateMetadata(): Promise<Metadata> {
+  // Attempt to read SEO overrides from the database.
+  // On any failure (Supabase down, table missing, etc.), fall back silently
+  // to the hardcoded siteConfig values — public site never errors.
+  let seoTitle: string | null = null
+  let seoDescription: string | null = null
+  let ogImageUrl: string | null = null
+
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (url && key) {
+      const res = await fetch(
+        `${url}/rest/v1/seo_settings?id=eq.1&select=seo_title,seo_description,og_image_url&limit=1`,
+        {
+          headers: {
+            apikey:          key,
+            Authorization:   `Bearer ${key}`,
+            'Content-Type':  'application/json',
+          },
+          next: { revalidate: 300 }, // ISR: revalidate every 5 minutes
+        }
+      )
+
+      if (res.ok) {
+        const rows: { seo_title: string | null; seo_description: string | null; og_image_url: string | null }[] =
+          await res.json()
+        const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null
+        if (row) {
+          seoTitle       = row.seo_title       || null
+          seoDescription = row.seo_description || null
+          ogImageUrl     = row.og_image_url     || null
+        }
+      }
+    }
+  } catch {
+    // Supabase unreachable — siteConfig fallback used below
+  }
+
+  // Resolve final values: DB override if set, otherwise hardcoded default
+  const resolvedTitle       = seoTitle       ?? siteConfig.title
+  const resolvedDescription = seoDescription ?? siteConfig.description
+  const resolvedOgImage     = ogImageUrl      ?? '/opengraph-image'
+  const resolvedTwitterImage = ogImageUrl     ?? '/twitter-image'
+
+  return {
+    metadataBase: new URL(siteConfig.url),
+    title: {
+      default:  resolvedTitle,
+      template: siteConfig.titleTemplate,
     },
-  },
-  openGraph: {
-    type:        'website',
-    locale:      siteConfig.locale,
-    url:         siteConfig.url,
-    siteName:    siteConfig.applicationName,
-    title:       siteConfig.title,
-    description: siteConfig.description,
-    images: [
-      {
-        url:    '/opengraph-image',
-        width:  1200,
-        height: 630,
-        alt:    `${siteConfig.name} — ${siteConfig.jobTitle}`,
+    description:     resolvedDescription,
+    applicationName: siteConfig.applicationName,
+    authors:         [{ name: siteConfig.name, url: siteConfig.url }],
+    creator:         siteConfig.creator,
+    publisher:       siteConfig.publisher,
+    category:        siteConfig.category,
+    keywords:        siteConfig.keywords,
+    alternates: {
+      canonical: '/',
+    },
+    robots: {
+      index:  true,
+      follow: true,
+      googleBot: {
+        index:                true,
+        follow:               true,
+        'max-image-preview':  'large',
+        'max-snippet':        -1,
+        'max-video-preview':  -1,
       },
-    ],
-  },
-  twitter: {
-    card:        'summary_large_image',
-    title:       siteConfig.title,
-    description: siteConfig.description,
-    images:      ['/twitter-image'],
-    creator:     '@mahdihasan',
-  },
-  icons: {
-    icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
-      { url: '/icon.png', type: 'image/png'     },
-    ],
-    apple: '/apple-icon.png',
-  },
+    },
+    openGraph: {
+      type:        'website',
+      locale:      siteConfig.locale,
+      url:         siteConfig.url,
+      siteName:    siteConfig.applicationName,
+      title:       resolvedTitle,
+      description: resolvedDescription,
+      images: [
+        {
+          url:    resolvedOgImage,
+          width:  1200,
+          height: 630,
+          alt:    `${siteConfig.name} — ${siteConfig.jobTitle}`,
+        },
+      ],
+    },
+    twitter: {
+      card:        'summary_large_image',
+      title:       resolvedTitle,
+      description: resolvedDescription,
+      images:      [resolvedTwitterImage],
+      creator:     '@mahdihasan',
+    },
+    icons: {
+      icon: [
+        { url: '/icon.svg', type: 'image/svg+xml' },
+        { url: '/icon.png', type: 'image/png'     },
+      ],
+      apple: '/apple-icon.png',
+    },
+  }
 }
 
 export const viewport: Viewport = {
