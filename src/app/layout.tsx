@@ -27,7 +27,6 @@ export async function generateMetadata(): Promise<Metadata> {
   // to the hardcoded siteConfig values — public site never errors.
   let seoTitle: string | null = null
   let seoDescription: string | null = null
-  let ogImageUrl: string | null = null
 
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -35,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
     if (url && key) {
       const res = await fetch(
-        `${url}/rest/v1/seo_settings?id=eq.1&select=seo_title,seo_description,og_image_url&limit=1`,
+        `${url}/rest/v1/seo_settings?id=eq.1&select=seo_title,seo_description&limit=1`,
         {
           headers: {
             apikey:          key,
@@ -47,13 +46,12 @@ export async function generateMetadata(): Promise<Metadata> {
       )
 
       if (res.ok) {
-        const rows: { seo_title: string | null; seo_description: string | null; og_image_url: string | null }[] =
+        const rows: { seo_title: string | null; seo_description: string | null }[] =
           await res.json()
         const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null
         if (row) {
           seoTitle       = row.seo_title       || null
           seoDescription = row.seo_description || null
-          ogImageUrl     = row.og_image_url     || null
         }
       }
     }
@@ -61,11 +59,16 @@ export async function generateMetadata(): Promise<Metadata> {
     // Supabase unreachable — siteConfig fallback used below
   }
 
-  // Resolve final values: DB override if set, otherwise hardcoded default
+  // Always expose the same-origin proxy URL for og:image and twitter:image.
+  // /api/og-image fetches seo_settings.og_image_url and proxies the image bytes
+  // from the same origin — making it WhatsApp/crawler-stable regardless of
+  // whether the DB image is a Supabase Storage URL or any other source.
+  // The route itself falls back to /api/og (generated image) when the DB value
+  // is empty or the upstream fetch fails.
   const resolvedTitle       = seoTitle       ?? siteConfig.title
   const resolvedDescription = seoDescription ?? siteConfig.description
-  const resolvedOgImage     = ogImageUrl      ?? '/api/og'
-  const resolvedTwitterImage = ogImageUrl     ?? '/api/og'
+  const resolvedOgImage     = '/api/og-image'
+  const resolvedTwitterImage = '/api/og-image'
 
   return {
     metadataBase: new URL(siteConfig.url),
