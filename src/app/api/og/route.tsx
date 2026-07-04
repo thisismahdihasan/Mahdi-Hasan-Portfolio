@@ -1,12 +1,21 @@
+/**
+ * /api/og — fallback generated OG image.
+ *
+ * Moved from src/app/opengraph-image.tsx and src/app/twitter-image.tsx.
+ * Those were Next.js special file-based metadata files whose presence caused
+ * Next.js to override generateMetadata() image values with the generated image,
+ * regardless of what generateMetadata() returned. Renaming to a plain API route
+ * removes that override while preserving the generated image as the fallback.
+ *
+ * layout.tsx generateMetadata() fallback:
+ *   ogImageUrl ?? '/api/og'   (instead of /opengraph-image or /twitter-image)
+ */
 import { ImageResponse } from 'next/og'
 import { siteConfig } from '@/lib/seo'
 
 export const runtime = 'edge'
 
-export const size = { width: 1200, height: 630 }
-export const contentType = 'image/png'
-
-export default function Image() {
+export function GET() {
   return new ImageResponse(
     (
       <div
@@ -31,7 +40,7 @@ export default function Image() {
           }}
         />
 
-        {/* Top-right subtle grid texture via box-shadow dots */}
+        {/* Top-right subtle radial glow */}
         <div
           style={{
             position: 'absolute',
@@ -99,7 +108,7 @@ export default function Image() {
             {siteConfig.jobTitle}
           </div>
 
-          {/* Stack pills row */}
+          {/* Stack pills */}
           <div
             style={{
               display: 'flex',
@@ -155,6 +164,6 @@ export default function Image() {
         />
       </div>
     ),
-    { ...size }
+    { width: 1200, height: 630 }
   )
 }

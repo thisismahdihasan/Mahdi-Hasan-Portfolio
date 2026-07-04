@@ -64,8 +64,8 @@ export async function generateMetadata(): Promise<Metadata> {
   // Resolve final values: DB override if set, otherwise hardcoded default
   const resolvedTitle       = seoTitle       ?? siteConfig.title
   const resolvedDescription = seoDescription ?? siteConfig.description
-  const resolvedOgImage     = ogImageUrl      ?? '/opengraph-image'
-  const resolvedTwitterImage = ogImageUrl     ?? '/twitter-image'
+  const resolvedOgImage     = ogImageUrl      ?? '/api/og'
+  const resolvedTwitterImage = ogImageUrl     ?? '/api/og'
 
   return {
     metadataBase: new URL(siteConfig.url),
